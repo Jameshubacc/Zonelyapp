@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Zonely</title>
+  <meta name="description" content="Zonely — convert times across cities and time zones.">
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#f2f2f7">
+
+  <!-- iOS home-screen app -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Zonely">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+
+  <style>
+    :root {
+      --bg: #f2f2f7;
+      --card: #ffffff;
+      --sep: #e6e6ea;
+      --text: #000000;
+      --secondary: #8e8e93;
+      --label: #6c6c6e;
+      --blue: #007aff;
+      --orange: #ff9500;
+      --purple: #af52de;
+      --red: #ff3b30;
+      --pill: #ececf1;
+      --hero: #ffffff;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #000000;
+        --card: #1c1c1e;
+        --sep: #38383a;
+        --text: #ffffff;
+        --secondary: #8e8e93;
+        --label: #98989f;
+        --pill: #2c2c2e;
+        --hero: #16202e;
+      }
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    h1 { font-size: 30px; font-weight: 800; letter-spacing: -0.5px; margin: 14px 16px 2px; }
+    .appbar { display: flex; align-items: center; gap: 10px; margin: 14px 16px 2px; }
+    .brand-mark { width: 40px; height: 40px; flex: none; }
+    .brand-name { margin: 0; }
+    .dn-tile { width: 42px; height: 42px; border-radius: 11px; flex: none; display: block; object-fit: cover; }
+    .dn-tile-sm { width: 22px; height: 22px; border-radius: 6px; vertical-align: middle; margin-right: 6px; }
+
+    .section-label { font-size: 12px; font-weight: 700; color: var(--label); letter-spacing: 0.6px; margin: 22px 16px 8px; }
+    .section-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin: 24px 16px 8px;
+      font-size: 12px; font-weight: 700; color: var(--label); letter-spacing: 0.6px;
+    }
+    .edit-btn { background: none; border: none; color: var(--blue); font: inherit; font-size: 15px; font-weight: 600; letter-spacing: 0; cursor: pointer; padding: 2px 2px; }
+
+    .card { background: var(--card); margin: 0 16px; border-radius: 16px; overflow: hidden; }
+    .hero-card { background: var(--hero); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .divider { height: 0.5px; background: var(--sep); margin-left: 16px; }
+
+    /* Day / night badge */
+    .dn-badge {
+      flex: none; width: 42px; height: 42px; border-radius: 50%;
+      display: grid; place-items: center; font-size: 21px; line-height: 1;
+    }
+    .dn-day   { background: rgba(255,200,0,0.30); }
+    .dn-dawn  { background: rgba(255,138,76,0.28); }
+    .dn-dusk  { background: rgba(160,90,220,0.26); }
+    .dn-night { background: rgba(78,98,170,0.28); }
+
+    /* Source hero */
+    .city-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px 16px 10px; background: none; border: none; font: inherit; color: var(--text); text-align: left; cursor: pointer; }
+    .city-text { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .city-name { font-size: 17px; font-weight: 600; }
+    .city-sub { font-size: 13px; color: var(--secondary); }
+    .chevron { color: #c7c7cc; font-size: 20px; font-weight: 600; }
+
+    .hero-main { display: flex; align-items: center; justify-content: space-between; padding: 0 16px 4px; }
+    .hero-time { font-size: 42px; font-weight: 800; letter-spacing: -1.5px; font-variant-numeric: tabular-nums; color: var(--text); }
+    .time-field { gap: 8px; }
+    .time-chev { font-size: 22px; color: var(--blue); line-height: 1; }
+    .now-btn { font: inherit; font-size: 15px; font-weight: 600; color: var(--blue); background: var(--pill); border: none; border-radius: 18px; padding: 8px 16px; cursor: pointer; }
+    .now-btn.active { background: var(--blue); color: #fff; }
+
+    .picker-field { position: relative; display: inline-flex; align-items: center; min-height: 44px; }
+    .overlay-input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border: none; margin: 0; padding: 0; background: transparent; -webkit-appearance: none; appearance: none; cursor: pointer; }
+
+    .date-line { padding: 0 16px 14px; }
+    .date-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--text); background: var(--pill); border-radius: 14px; padding: 7px 12px; }
+    .date-ico { font-size: 14px; }
+    .date-chev { color: var(--secondary); font-size: 16px; font-weight: 600; margin-left: 2px; }
+
+    /* Destination rows */
+    .hint { font-size: 12px; color: var(--secondary); margin: -2px 16px 10px; }
+    .dest { display: flex; align-items: center; gap: 12px; padding: 12px 16px; cursor: pointer; }
+    .card:not(.editing) .dest:active { background: var(--pill); }
+    .card.editing .dest { cursor: default; }
+    .del { display: none; flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--red); color: #fff; border: none; font-size: 22px; line-height: 1; cursor: pointer; place-items: center; }
+    .card.editing .del { display: grid; }
+    .dest-text { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .dest-city { font-size: 16px; font-weight: 600; }
+    .dest-sub { font-size: 13px; color: var(--secondary); }
+    .dest-right { text-align: right; flex: none; }
+    .dest-time { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.5px; }
+    .dest-date { font-size: 12px; font-weight: 600; margin-top: 2px; font-variant-numeric: tabular-nums; }
+
+    .row { display: flex; align-items: center; width: 100%; padding: 15px 16px; background: none; border: none; font: inherit; color: var(--blue); text-align: left; cursor: pointer; }
+    .link-row { font-size: 16px; font-weight: 500; }
+    .empty { padding: 18px 16px; text-align: center; color: var(--secondary); font-size: 14px; }
+
+    /* City picker overlay */
+    .picker { position: fixed; inset: 0; background: var(--bg); padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); display: flex; flex-direction: column; z-index: 50; transform: translateY(0); transition: transform 0.28s cubic-bezier(.32,.72,0,1); }
+    .picker[hidden] { display: none; }
+    .picker.closing { transform: translateY(100%); }
+    .picker-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; }
+    .picker-header button { background: none; border: none; color: var(--blue); font: inherit; font-size: 16px; cursor: pointer; }
+    .picker-title { font-size: 16px; font-weight: 600; }
+    .picker-search { padding: 0 16px 10px; }
+    .picker-search input { width: 100%; font: inherit; font-size: 16px; border: none; border-radius: 10px; background: var(--pill); color: var(--text); padding: 10px 12px; }
+    .picker-list { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .picker-section { font-size: 12px; font-weight: 700; color: var(--label); letter-spacing: 0.5px; padding: 16px 16px 6px; }
+    .picker-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--card); padding: 14px 16px; border-bottom: 0.5px solid var(--sep); cursor: pointer; }
+    .picker-item .now { font-size: 14px; color: var(--secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .no-results { padding: 40px 16px; text-align: center; color: var(--secondary); }
+  </style>
+</head>
+<body>
+  <header class="appbar">
+    <img class="brand-mark" src="brand/zonely-mark-transparent.svg" alt="Zonely">
+    <h1 class="brand-name">Zonely</h1>
+  </header>
+
+  <div class="section-label">CONVERT FROM</div>
+  <div class="card hero-card">
+    <button class="city-row" id="sourceBtn">
+      <img class="dn-tile" id="srcBadge" alt="">
+
+      <span class="city-text">
+        <span class="city-name" id="sourceLabel">Loading…</span>
+        <span class="city-sub" id="timeZoneLabel"></span>
+      </span>
+      <span class="chevron">›</span>
+    </button>
+
+    <div class="hero-main">
+      <div class="picker-field time-field">
+        <span class="hero-time" id="heroTime"></span>
+        <span class="time-chev">▾</span>
+        <input type="time" id="timeInput" class="overlay-input" aria-label="Pick time">
+      </div>
+      <button class="now-btn" id="nowBtn" type="button">Now</button>
+    </div>
+
+    <div class="date-line">
+      <div class="picker-field">
+        <span class="date-chip"><span class="date-ico">📅</span><span id="whenLabel"></span><span class="date-chev">›</span></span>
+        <input type="date" id="dateInput" class="overlay-input" aria-label="Pick a date">
+      </div>
+    </div>
+  </div>
+
+  <div class="section-head">
+    <span>CONVERT TO</span>
+    <button class="edit-btn" id="editBtn" type="button">Edit</button>
+  </div>
+  <div class="hint" id="swapHint">Tap a city to swap it to the top ↑</div>
+  <div class="card" id="destCard"></div>
+
+  <!-- City picker -->
+  <div class="picker" id="picker" hidden>
+    <div class="picker-header">
+      <button id="pickerCancel">Cancel</button>
+      <span class="picker-title" id="pickerTitle">Select</span>
+      <span style="width:56px"></span>
+    </div>
+    <div class="picker-search">
+      <input id="pickerSearch" type="search" placeholder="Search cities or countries…" autocomplete="off" autocorrect="off">
+    </div>
+    <div class="picker-list" id="pickerList"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5BA8FF"/>
+      <stop offset="1" stop-color="#2E7DEF"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+
+  <!-- body -->
+  <ellipse cx="256" cy="384" rx="136" ry="116" fill="#E8A65A" stroke="#C9863C" stroke-width="4"/>
+  <ellipse cx="256" cy="404" rx="76" ry="90" fill="#FBEEDA"/>
+
+  <!-- ears (behind head) -->
+  <g stroke="#C9863C" stroke-width="4" stroke-linejoin="round">
+    <polygon points="172,150 126,54 240,120" fill="#E8A65A"/>
+    <polygon points="340,150 386,54 272,120" fill="#E8A65A"/>
+  </g>
+  <polygon points="180,140 142,78 218,118" fill="#EBB489"/>
+  <polygon points="332,140 370,78 294,118" fill="#EBB489"/>
+
+  <!-- head -->
+  <ellipse cx="256" cy="196" rx="124" ry="108" fill="#E8A65A" stroke="#C9863C" stroke-width="4"/>
+
+  <!-- cream muzzle + cheeks -->
+  <ellipse cx="188" cy="236" rx="38" ry="34" fill="#FBEEDA"/>
+  <ellipse cx="324" cy="236" rx="38" ry="34" fill="#FBEEDA"/>
+  <ellipse cx="256" cy="240" rx="92" ry="70" fill="#FBEEDA"/>
+
+  <!-- eyebrow dots -->
+  <circle cx="206" cy="152" r="10" fill="#FBEEDA"/>
+  <circle cx="306" cy="152" r="10" fill="#FBEEDA"/>
+
+  <!-- cheeks blush -->
+  <circle cx="184" cy="216" r="17" fill="#F6A6A0" opacity="0.5"/>
+  <circle cx="328" cy="216" r="17" fill="#F6A6A0" opacity="0.5"/>
+
+  <!-- eyes -->
+  <circle cx="210" cy="190" r="15" fill="#33333B"/>
+  <circle cx="302" cy="190" r="15" fill="#33333B"/>
+  <circle cx="215" cy="184" r="5" fill="#ffffff"/>
+  <circle cx="307" cy="184" r="5" fill="#ffffff"/>
+
+  <!-- nose + smile -->
+  <path d="M239,228 Q256,221 273,228 Q276,242 256,250 Q236,242 239,228 Z" fill="#33333B"/>
+  <path d="M256,250 Q244,262 232,255 M256,250 Q268,262 280,255" fill="none" stroke="#33333B" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- clock hugged against the chest -->
+  <circle cx="256" cy="398" r="76" fill="#ffffff" stroke="#DCE3EE" stroke-width="6"/>
+  <g stroke="#2C3550" stroke-width="5" stroke-linecap="round">
+    <line x1="256" y1="330" x2="256" y2="342" transform="rotate(0 256 398)"/>
+    <line x1="256" y1="332" x2="256" y2="342" transform="rotate(30 256 398)"/>
+    <line x1="256" y1="332" x2="256" y2="342" transform="rotate(60 256 398)"/>
+    <line x1="256" y1="330" x2="256" y2="342" transform="rotate(90 256 398)"/>
+    <line x1="256" y1="332" x2="256" y2="342" transform="rotate(120 256 398)"/>
+    <line x1="256" y1="332" x2="256" y2="342" transform="rotate(150 256 398)"/>
+    <line x1="256" y1="330" x2="256" y2="342" transform="rotate(180 256 398)"/>
+    <line x1="256" y1="332" x2="256" y2="342" transform="rotate(210 256 398)"/>
+    <line x1="256" y1="332" x2="256" y2="342" transform="rotate(240 256 398)"/>
+    <line x1="256" y1="330" x2="256" y2="342" transform="rotate(270 256 398)"/>
+    <line x1="256" y1="332" x2="256" y2="342" transform="rotate(300 256 398)"/>
+    <line x1="256" y1="332" x2="256" y2="342" transform="rotate(330 256 398)"/>
+  </g>
+  <line x1="256" y1="398" x2="223" y2="379" stroke="#2C3550" stroke-width="8" stroke-linecap="round"/>
+  <line x1="256" y1="398" x2="301" y2="372" stroke="#2C3550" stroke-width="6" stroke-linecap="round"/>
+  <line x1="256" y1="398" x2="230" y2="443" stroke="#FF9500" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="256" cy="398" r="7" fill="#2C3550"/>
+  <circle cx="256" cy="398" r="3" fill="#ffffff"/>
+
+  <!-- smooth mitten paws hugging the clock (no toes) -->
+  <ellipse cx="184" cy="408" rx="40" ry="30" fill="#E8A65A" stroke="#C9863C" stroke-width="4" transform="rotate(20 184 408)"/>
+  <ellipse cx="328" cy="408" rx="40" ry="30" fill="#E8A65A" stroke="#C9863C" stroke-width="4" transform="rotate(-20 328 408)"/>
+</svg>

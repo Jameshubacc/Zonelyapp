@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+
+  <defs>
+    <linearGradient id="c-london-paper" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FBF6EC"></stop><stop offset="60%" stop-color="#F3EAD8"></stop><stop offset="100%" stop-color="#E9DCC4"></stop></linearGradient>
+    <radialGradient id="c-london-toplt" cx="50%" cy="0%" r="80%"><stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.7"></stop><stop offset="45%" stop-color="#FFFFFF" stop-opacity="0"></stop></radialGradient>
+    <linearGradient id="c-london-ink" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#43392F"></stop><stop offset="100%" stop-color="#221C16"></stop></linearGradient>
+    <radialGradient id="c-london-sun" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#FFCF86" stop-opacity="0.95"></stop><stop offset="100%" stop-color="#F79636" stop-opacity="0"></stop></radialGradient>
+    <clipPath id="c-london-cp"><path d="M 368.64,0 L 655.36,0 C 793.6,0 896.8422400000001,0 793.6,0 C 896.84224,0 1024,127.15776 1024,230.4 L 1024,655.36 C 1024,793.6 1024,896.8422400000001 1024,793.6 C 1024,896.84224 896.84224,1024 793.6,1024 L 368.64,1024 C 230.39999999999998,1024 127.15776,1024 230.4,1024 C 127.15776,1024 0,896.84224 0,793.6 L 0,368.64 C 0,230.39999999999998 0,127.15776 0,230.4 C 0,127.15776 127.15776,0 230.4,0 Z"></path></clipPath>
+  </defs>
+  <path d="M 368.64,0 L 655.36,0 C 793.6,0 896.8422400000001,0 793.6,0 C 896.84224,0 1024,127.15776 1024,230.4 L 1024,655.36 C 1024,793.6 1024,896.8422400000001 1024,793.6 C 1024,896.84224 896.84224,1024 793.6,1024 L 368.64,1024 C 230.39999999999998,1024 127.15776,1024 230.4,1024 C 127.15776,1024 0,896.84224 0,793.6 L 0,368.64 C 0,230.39999999999998 0,127.15776 0,230.4 C 0,127.15776 127.15776,0 230.4,0 Z" fill="url(#c-london-paper)"></path>
+  <g clip-path="url(#c-london-cp)">
+    <circle cx="512" cy="690" r="300" fill="url(#c-london-sun)"></circle>
+    <rect x="0" y="812" width="1024" height="212" fill="#E2D2B5" opacity="0.6"></rect>
+    <g fill="url(#c-london-ink)" stroke="url(#c-london-ink)"><g stroke="none">
+    <rect x="450" y="744" width="124" height="68" rx="4"></rect><rect x="470" y="392" width="84" height="356"></rect>
+    <rect x="458" y="392" width="108" height="92" rx="6"></rect><circle cx="512" cy="438" r="30" fill="#FBF6EC"></circle>
+    <rect x="509" y="416" width="6" height="24" rx="3" fill="#221C16"></rect><rect x="512" y="435" width="20" height="6" rx="3" fill="#221C16"></rect>
+    <rect x="476" y="352" width="72" height="44" rx="4"></rect><path d="M 466,352 L 512,250 L 558,352 Z"></path>
+    <rect x="507" y="226" width="10" height="34" rx="4"></rect><circle cx="512" cy="222" r="9"></circle>
+    <rect x="498" y="540" width="28" height="60" rx="6" fill="#FBF6EC" opacity="0.5"></rect></g></g>
+  </g>
+  <path d="M 368.64,0 L 655.36,0 C 793.6,0 896.8422400000001,0 793.6,0 C 896.84224,0 1024,127.15776 1024,230.4 L 1024,655.36 C 1024,793.6 1024,896.8422400000001 1024,793.6 C 1024,896.84224 896.84224,1024 793.6,1024 L 368.64,1024 C 230.39999999999998,1024 127.15776,1024 230.4,1024 C 127.15776,1024 0,896.84224 0,793.6 L 0,368.64 C 0,230.39999999999998 0,127.15776 0,230.4 C 0,127.15776 127.15776,0 230.4,0 Z" fill="url(#c-london-toplt)"></path>
+</svg>

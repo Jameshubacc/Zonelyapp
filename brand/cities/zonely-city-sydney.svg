@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+
+  <defs>
+    <linearGradient id="c-sydney-paper" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#FBF6EC"></stop><stop offset="60%" stop-color="#F3EAD8"></stop><stop offset="100%" stop-color="#E9DCC4"></stop></linearGradient>
+    <radialGradient id="c-sydney-toplt" cx="50%" cy="0%" r="80%"><stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.7"></stop><stop offset="45%" stop-color="#FFFFFF" stop-opacity="0"></stop></radialGradient>
+    <linearGradient id="c-sydney-ink" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#43392F"></stop><stop offset="100%" stop-color="#221C16"></stop></linearGradient>
+    <radialGradient id="c-sydney-sun" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#FFCF86" stop-opacity="0.95"></stop><stop offset="100%" stop-color="#F79636" stop-opacity="0"></stop></radialGradient>
+    <clipPath id="c-sydney-cp"><path d="M 368.64,0 L 655.36,0 C 793.6,0 896.8422400000001,0 793.6,0 C 896.84224,0 1024,127.15776 1024,230.4 L 1024,655.36 C 1024,793.6 1024,896.8422400000001 1024,793.6 C 1024,896.84224 896.84224,1024 793.6,1024 L 368.64,1024 C 230.39999999999998,1024 127.15776,1024 230.4,1024 C 127.15776,1024 0,896.84224 0,793.6 L 0,368.64 C 0,230.39999999999998 0,127.15776 0,230.4 C 0,127.15776 127.15776,0 230.4,0 Z"></path></clipPath>
+  </defs>
+  <path d="M 368.64,0 L 655.36,0 C 793.6,0 896.8422400000001,0 793.6,0 C 896.84224,0 1024,127.15776 1024,230.4 L 1024,655.36 C 1024,793.6 1024,896.8422400000001 1024,793.6 C 1024,896.84224 896.84224,1024 793.6,1024 L 368.64,1024 C 230.39999999999998,1024 127.15776,1024 230.4,1024 C 127.15776,1024 0,896.84224 0,793.6 L 0,368.64 C 0,230.39999999999998 0,127.15776 0,230.4 C 0,127.15776 127.15776,0 230.4,0 Z" fill="url(#c-sydney-paper)"></path>
+  <g clip-path="url(#c-sydney-cp)">
+    <circle cx="512" cy="690" r="300" fill="url(#c-sydney-sun)"></circle>
+    <rect x="0" y="812" width="1024" height="212" fill="#E2D2B5" opacity="0.6"></rect>
+    <g fill="url(#c-sydney-ink)" stroke="url(#c-sydney-ink)"><g stroke="none">
+    <path d="M 360,640 C 360,520 410,430 470,640 Z"></path><path d="M 430,640 C 430,486 492,378 556,640 Z"></path>
+    <path d="M 512,640 C 512,512 568,420 628,640 Z"></path><path d="M 588,640 C 588,548 632,470 676,640 Z"></path>
+    <rect x="320" y="640" width="392" height="40" rx="6"></rect><rect x="300" y="690" width="432" height="14" rx="6" opacity="0.5"></rect></g></g>
+  </g>
+  <path d="M 368.64,0 L 655.36,0 C 793.6,0 896.8422400000001,0 793.6,0 C 896.84224,0 1024,127.15776 1024,230.4 L 1024,655.36 C 1024,793.6 1024,896.8422400000001 1024,793.6 C 1024,896.84224 896.84224,1024 793.6,1024 L 368.64,1024 C 230.39999999999998,1024 127.15776,1024 230.4,1024 C 127.15776,1024 0,896.84224 0,793.6 L 0,368.64 C 0,230.39999999999998 0,127.15776 0,230.4 C 0,127.15776 127.15776,0 230.4,0 Z" fill="url(#c-sydney-toplt)"></path>
+</svg>

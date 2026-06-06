@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5BA8FF"/>
+      <stop offset="1" stop-color="#2E7DEF"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+
+  <!-- ears (behind head) -->
+  <g stroke="#C9863C" stroke-width="4" stroke-linejoin="round">
+    <polygon points="168,96 124,26 232,80" fill="#E8A65A"/>
+    <polygon points="344,96 388,26 280,80" fill="#E8A65A"/>
+  </g>
+  <polygon points="176,88 138,42 214,80" fill="#EBB489"/>
+  <polygon points="336,88 374,42 298,80" fill="#EBB489"/>
+
+  <!-- head -->
+  <ellipse cx="256" cy="150" rx="118" ry="98" fill="#E8A65A" stroke="#C9863C" stroke-width="4"/>
+
+  <!-- cheeks blush -->
+  <circle cx="168" cy="170" r="20" fill="#F6A6A0" opacity="0.45"/>
+  <circle cx="344" cy="170" r="20" fill="#F6A6A0" opacity="0.45"/>
+
+  <!-- eyebrow dots -->
+  <circle cx="208" cy="112" r="9" fill="#FBEEDA"/>
+  <circle cx="304" cy="112" r="9" fill="#FBEEDA"/>
+
+  <!-- eyes (friendly round) -->
+  <circle cx="210" cy="146" r="15" fill="#33333B"/>
+  <circle cx="302" cy="146" r="15" fill="#33333B"/>
+  <circle cx="215" cy="140" r="5" fill="#ffffff"/>
+  <circle cx="307" cy="140" r="5" fill="#ffffff"/>
+
+  <!-- nose + little smile -->
+  <path d="M239,176 Q256,169 273,176 Q276,189 256,196 Q236,189 239,176 Z" fill="#33333B"/>
+  <path d="M256,196 Q245,206 234,200 M256,196 Q267,206 278,200" fill="none" stroke="#33333B" stroke-width="5" stroke-linecap="round"/>
+
+  <!-- clock held in front -->
+  <circle cx="256" cy="352" r="138" fill="#ffffff" stroke="#DCE3EE" stroke-width="7"/>
+  <g stroke="#2C3550" stroke-width="6" stroke-linecap="round">
+    <line x1="256" y1="228" x2="256" y2="242" transform="rotate(0 256 352)"/>
+    <line x1="256" y1="228" x2="256" y2="240" transform="rotate(30 256 352)"/>
+    <line x1="256" y1="228" x2="256" y2="240" transform="rotate(60 256 352)"/>
+    <line x1="256" y1="228" x2="256" y2="242" transform="rotate(90 256 352)"/>
+    <line x1="256" y1="228" x2="256" y2="240" transform="rotate(120 256 352)"/>
+    <line x1="256" y1="228" x2="256" y2="240" transform="rotate(150 256 352)"/>
+    <line x1="256" y1="228" x2="256" y2="242" transform="rotate(180 256 352)"/>
+    <line x1="256" y1="228" x2="256" y2="240" transform="rotate(210 256 352)"/>
+    <line x1="256" y1="228" x2="256" y2="240" transform="rotate(240 256 352)"/>
+    <line x1="256" y1="228" x2="256" y2="242" transform="rotate(270 256 352)"/>
+    <line x1="256" y1="228" x2="256" y2="240" transform="rotate(300 256 352)"/>
+    <line x1="256" y1="228" x2="256" y2="240" transform="rotate(330 256 352)"/>
+  </g>
+  <line x1="256" y1="352" x2="212" y2="326" stroke="#2C3550" stroke-width="10" stroke-linecap="round"/>
+  <line x1="256" y1="352" x2="318" y2="316" stroke="#2C3550" stroke-width="8" stroke-linecap="round"/>
+  <line x1="256" y1="352" x2="228" y2="430" stroke="#FF9500" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="256" cy="352" r="10" fill="#2C3550"/>
+  <circle cx="256" cy="352" r="4.5" fill="#ffffff"/>
+
+  <!-- paws gently holding the rim (smooth, no toes) -->
+  <ellipse cx="176" cy="262" rx="38" ry="27" fill="#E8A65A" stroke="#C9863C" stroke-width="4" transform="rotate(-18 176 262)"/>
+  <ellipse cx="336" cy="262" rx="38" ry="27" fill="#E8A65A" stroke="#C9863C" stroke-width="4" transform="rotate(18 336 262)"/>
+</svg>
