@@ -131,7 +131,7 @@ let geoLabel = null;
 try { geoLabel = JSON.parse(localStorage.getItem('tzc-geolabel') || 'null'); } catch (_) {}
 function currentLocation() {
   const tz = deviceTz();
-  const label = (geoLabel && geoLabel.tz === tz && geoLabel.label) ? geoLabel.label : 'Current location';
+  const label = (geoLabel && geoLabel.tz === tz && geoLabel.label) ? geoLabel.label : t('currentLocation');
   return { id: 'current', city: label, country: '', tz, flag: '📍', region: '', alt: 'here my location current' };
 }
 // Ask for location once, reverse-geocode to "City, Region", cache it, re-render.
@@ -158,6 +158,32 @@ const byId = (id) =>
   id === 'current'
     ? currentLocation()
     : (LOCATIONS.find((l) => l.id === id) || customLocations.find((l) => l.id === id) || null);
+
+// ─── i18n (translations from i18n.js) ─────────────────────────────────────────
+function detectLang() {
+  try { const s = localStorage.getItem('tzc-lang'); if (s && I18N[s]) return s; } catch (_) {}
+  const nav = (navigator.language || 'en').slice(0, 2).toLowerCase();
+  return (typeof I18N !== 'undefined' && I18N[nav]) ? nav : 'en';
+}
+let LANG = (typeof I18N !== 'undefined') ? detectLang() : 'en';
+let LOCALE = (typeof I18N !== 'undefined' && I18N[LANG] && I18N[LANG].locale) || 'en-US';
+function t(key, vars) {
+  const dict = (typeof I18N !== 'undefined' && (I18N[LANG] || I18N.en)) || {};
+  let s = dict[key] != null ? dict[key] : ((typeof I18N !== 'undefined' && I18N.en && I18N.en[key]) || key);
+  if (vars) for (const k in vars) s = s.split('{' + k + '}').join(vars[k]);
+  return s;
+}
+function regionLabel(r) {
+  return (typeof I18N !== 'undefined' && I18N[LANG] && I18N[LANG].regions && I18N[LANG].regions[r]) || r;
+}
+function setLang(lang) {
+  if (typeof I18N === 'undefined' || !I18N[lang]) return;
+  LANG = lang;
+  LOCALE = I18N[lang].locale || 'en-US';
+  try { localStorage.setItem('tzc-lang', LANG); } catch (_) {}
+  applyStaticI18n();
+  render();
+}
 
 // ─── Time helpers (full Intl tz support in browsers) ─────────────────────────
 function getParts(date, tz) {
@@ -189,8 +215,8 @@ function wallToInstant(y, mo, d, h, mi, tz) {
 }
 
 function fmtTime(instant, tz) {
-  return new Intl.DateTimeFormat('en-US', {
-    hour: 'numeric', minute: '2-digit', hour12: true, timeZone: tz,
+  return new Intl.DateTimeFormat(LOCALE, {
+    hour: 'numeric', minute: '2-digit', timeZone: tz,
   }).format(instant);
 }
 
@@ -203,7 +229,7 @@ function tzAbbr(instant, tz) {
 
 // "Sat, Jun 6" in the given zone
 function fmtDate(instant, tz) {
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(LOCALE, {
     weekday: 'short', month: 'short', day: 'numeric', timeZone: tz,
   }).format(instant);
 }
@@ -242,10 +268,10 @@ function relativeLabel(dateStr, tz) {
   const a = Date.parse(todayInZone(tz) + 'T00:00:00Z');
   const b = Date.parse(dateStr + 'T00:00:00Z');
   const diff = Math.round((b - a) / 86400000);
-  if (diff === 0) return 'Today';
-  if (diff === 1) return 'Tomorrow';
-  if (diff === -1) return 'Yesterday';
-  return diff > 0 ? `In ${diff} days` : `${-diff} days ago`;
+  if (diff === 0) return t('today');
+  if (diff === 1) return t('tomorrow');
+  if (diff === -1) return t('yesterday');
+  return diff > 0 ? t('inDays', { n: diff }) : t('daysAgo', { n: -diff });
 }
 function stepDay(delta) {
   const tz = byId(state.sourceId).tz;
@@ -257,9 +283,9 @@ function dayOffset(instant, fromTz, toTz) {
   const dayStr = (tz) => new Intl.DateTimeFormat('en-CA', {
     timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
   }).format(instant);
-  const f = dayStr(fromTz), t = dayStr(toTz);
-  if (f === t) return 0;
-  return Math.round((Date.parse(t + 'T00:00:00Z') - Date.parse(f + 'T00:00:00Z')) / 86400000);
+  const fromDay = dayStr(fromTz), toDay = dayStr(toTz);
+  if (fromDay === toDay) return 0;
+  return Math.round((Date.parse(toDay + 'T00:00:00Z') - Date.parse(fromDay + 'T00:00:00Z')) / 86400000);
 }
 
 // Local hour (0–23) in a zone, for the day/night indicator.
@@ -278,11 +304,11 @@ function dayNight(hour) {
 // "9h ahead" / "3h 30m behind" / "same time", relative to the source zone.
 function offsetPhrase(instant, fromTz, toTz) {
   const diffMin = Math.round((tzOffsetMs(toTz, instant) - tzOffsetMs(fromTz, instant)) / 60000);
-  if (diffMin === 0) return 'same time';
+  if (diffMin === 0) return t('sameTime');
   const h = Math.floor(Math.abs(diffMin) / 60);
   const m = Math.abs(diffMin) % 60;
-  const hm = h + 'h' + (m ? ' ' + m + 'm' : '');
-  return hm + (diffMin > 0 ? ' ahead' : ' behind');
+  const x = h + 'h' + (m ? ' ' + m + 'm' : '');
+  return t(diffMin > 0 ? 'ahead' : 'behind', { x });
 }
 
 // ─── State ───────────────────────────────────────────────────────────────────
@@ -377,7 +403,7 @@ function renderDestinations(instant) {
       </div>`;
   });
   if (dests.length > 0) html += '<div class="divider"></div>';
-  html += '<button class="row link-row" id="addBtn"><span>+ Add City</span></button>';
+  html += '<button class="row link-row" id="addBtn"><span>' + t('addCity') + '</span></button>';
   card.innerHTML = html;
   card.classList.toggle('editing', editMode);
 }
@@ -399,10 +425,39 @@ function render() {
   updateNowBtn();
 }
 
+// Apply translations to the static UI elements.
+function applyStaticI18n() {
+  $('#labelFrom').textContent = t('convertFrom');
+  $('#labelTo').textContent = t('convertTo');
+  $('#nowBtn').textContent = t('now');
+  $('#editBtn').textContent = editMode ? t('done') : t('edit');
+  $('#swapHint').textContent = t('swapHint');
+  $('#pickerCancel').textContent = t('cancel');
+  $('#pickerSearch').setAttribute('placeholder', t('search'));
+  $('#settingsTitle').textContent = t('settings');
+  $('#settingsLangLabel').textContent = t('language');
+  $('#settingsCancel').textContent = t('cancel');
+}
+
+// ─── Settings (language) ──────────────────────────────────────────────────────
+function renderLangList() {
+  let html = '';
+  for (const code in I18N) {
+    html += `<div class="lang-item" data-lang="${code}"><span>${esc(I18N[code].langName)}</span><span class="lang-check">${code === LANG ? '✓' : ''}</span></div>`;
+  }
+  $('#langList').innerHTML = html;
+}
+function openSettings() { renderLangList(); $('#settings').hidden = false; }
+function closeSettings() {
+  const p = $('#settings');
+  p.classList.add('closing');
+  setTimeout(() => { p.hidden = true; p.classList.remove('closing'); }, 280);
+}
+
 // ─── Picker ────────────────────────────────────────────────────────────────────
 function openPicker(mode) {
   pickerMode = mode;
-  $('#pickerTitle').textContent = mode === 'source' ? 'Select Source' : 'Add Destination';
+  $('#pickerTitle').textContent = mode === 'source' ? t('selectSource') : t('addDestination');
   $('#pickerSearch').value = '';
   geoResults = [];
   renderPickerList('');
@@ -460,7 +515,7 @@ function renderPickerList(query) {
 
   // Your current location (auto-detected device time zone)
   if (!excluded.has('current') && (q === '' || 'current location here my'.includes(q))) {
-    html += '<div class="picker-section">Your location</div>' + item(currentLocation(), '📍 Current location');
+    html += '<div class="picker-section">' + t('yourLocation') + '</div>' + item(currentLocation(), '📍 ' + t('currentLocation'));
     total += 1;
   }
 
@@ -475,7 +530,7 @@ function renderPickerList(query) {
     );
     if (!items.length) continue;
     total += items.length;
-    html += `<div class="picker-section">${region}</div>`;
+    html += `<div class="picker-section">${regionLabel(region)}</div>`;
     for (const l of items) {
       html += item(l, `${l.flag}  ${esc(l.city)}${l.country ? ', ' + esc(l.country) : ''}`);
     }
@@ -486,14 +541,14 @@ function renderPickerList(query) {
     const localKey = new Set(LOCATIONS.map((l) => l.city.toLowerCase() + '|' + l.tz));
     const geoShow = geoResults.filter((g) => !excluded.has(g.id) && !localKey.has(g.city.toLowerCase() + '|' + g.tz));
     if (geoShow.length) {
-      html += '<div class="picker-section">Worldwide</div>';
+      html += '<div class="picker-section">' + t('worldwide') + '</div>';
       for (const g of geoShow) html += item(g, `${g.flag}  ${esc(g.city)}${g.country ? ', ' + esc(g.country) : ''}`);
       total += geoShow.length;
     }
   }
 
-  if (q === '') html += '<div class="picker-hint">Search any city worldwide — e.g. Shenzhen, Menlo Park</div>';
-  if (total === 0) html = '<div class="no-results">Searching…</div>';
+  if (q === '') html += '<div class="picker-hint">' + t('searchHint') + '</div>';
+  if (total === 0) html = '<div class="no-results">' + (q.length >= 2 ? t('searching') : t('noResults')) + '</div>';
   $('#pickerList').innerHTML = html;
 }
 
@@ -587,9 +642,15 @@ $('#sourceBtn').addEventListener('click', () => openPicker('source'));
 $('#pickerCancel').addEventListener('click', closePicker);
 $('#editBtn').addEventListener('click', () => {
   editMode = !editMode;
-  $('#editBtn').textContent = editMode ? 'Done' : 'Edit';
+  $('#editBtn').textContent = editMode ? t('done') : t('edit');
   $('#destCard').classList.toggle('editing', editMode);
   $('#swapHint').style.display = editMode ? 'none' : '';
+});
+$('#settingsBtn').addEventListener('click', openSettings);
+$('#settingsCancel').addEventListener('click', closeSettings);
+$('#langList').addEventListener('click', (e) => {
+  const it = e.target.closest('[data-lang]');
+  if (it) { setLang(it.getAttribute('data-lang')); closeSettings(); }
 });
 $('#timeInput').addEventListener('input', () => { liveNow = false; render(); });
 $('#timeSlider').addEventListener('input', () => {
@@ -628,6 +689,7 @@ $('#pickerList').addEventListener('click', (e) => {
 function init() {
   // Start in "Now" mode — show the live current time, refreshing each minute.
   liveNow = true;
+  applyStaticI18n();
   render();
   if (state.sourceId === 'current') detectLocationName();
   setInterval(() => {

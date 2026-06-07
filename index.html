@@ -61,6 +61,9 @@
     .appbar { display: flex; align-items: center; gap: 10px; margin: 14px 16px 2px; }
     .brand-mark { width: 40px; height: 40px; flex: none; }
     .brand-name { margin: 0; }
+    .gear-btn { margin-left: auto; background: none; border: none; font-size: 24px; line-height: 1; cursor: pointer; padding: 4px 2px; }
+    .lang-item { display: flex; align-items: center; justify-content: space-between; background: var(--card); padding: 15px 16px; border-bottom: 0.5px solid var(--sep); cursor: pointer; font-size: 16px; color: var(--text); }
+    .lang-check { color: var(--blue); font-weight: 700; }
     .dn-tile { width: 42px; height: 42px; border-radius: 11px; flex: none; display: block; object-fit: cover; }
     .dn-tile-sm { width: 22px; height: 22px; border-radius: 6px; vertical-align: middle; margin-right: 6px; }
 
@@ -174,9 +177,10 @@
   <header class="appbar">
     <img class="brand-mark" src="brand/zonely-mark-transparent.svg" alt="Zonely">
     <h1 class="brand-name">Zonely</h1>
+    <button class="gear-btn" id="settingsBtn" type="button" aria-label="Settings">⚙️</button>
   </header>
 
-  <div class="section-label">CONVERT FROM</div>
+  <div class="section-label" id="labelFrom">CONVERT FROM</div>
   <div class="card hero-card">
     <button class="city-row" id="sourceBtn">
       <img class="dn-tile" id="srcBadge" alt="">
@@ -210,7 +214,7 @@
   </div>
 
   <div class="section-head">
-    <span>CONVERT TO</span>
+    <span id="labelTo">CONVERT TO</span>
     <button class="edit-btn" id="editBtn" type="button">Edit</button>
   </div>
   <div class="hint" id="swapHint">Tap a city to swap it to the top ↑</div>
@@ -229,6 +233,20 @@
     <div class="picker-list" id="pickerList"></div>
   </div>
 
+  <!-- Settings (language) -->
+  <div class="picker" id="settings" hidden>
+    <div class="picker-header">
+      <button id="settingsCancel">Cancel</button>
+      <span class="picker-title" id="settingsTitle">Settings</span>
+      <span style="width:56px"></span>
+    </div>
+    <div class="picker-list">
+      <div class="picker-section" id="settingsLangLabel">Language</div>
+      <div id="langList"></div>
+    </div>
+  </div>
+
+  <script src="i18n.js"></script>
   <script src="zones.js"></script>
   <script src="app.js"></script>
 </body>
