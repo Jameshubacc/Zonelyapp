@@ -1,5 +1,5 @@
 // Service worker — offline app shell cache
-const CACHE = 'tz-converter-v3';
+const CACHE = 'tz-converter-v4';
 const ASSETS = [
   './',
   './index.html',
@@ -8,6 +8,8 @@ const ASSETS = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/apple-touch-icon.png',
+  './icons/favicon-32.png',
+  './icons/favicon-16.png',
   './brand/zonely-mark-transparent.svg',
   './brand/timeofday/zonely-time-morning.svg',
   './brand/timeofday/zonely-time-afternoon.svg',

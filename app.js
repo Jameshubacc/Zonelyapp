@@ -280,6 +280,8 @@ function renderSource(instant) {
   const badge = $('#srcBadge');
   badge.src = dn.src;
   badge.alt = dn.period;
+  const p = getParts(instant, s.tz);
+  $('#timeSlider').value = (+p.hour) * 60 + (+p.minute);
   $('#sourceLabel').textContent = `${s.flag}  ${s.city}, ${s.country}`;
   $('#timeZoneLabel').textContent = tzAbbr(instant, s.tz);
   $('#heroTime').textContent = fmtTime(instant, s.tz);
@@ -314,6 +316,7 @@ function renderDestinations(instant) {
           <div class="dest-time">${esc(fmtTime(instant, loc.tz))}</div>
           <div class="dest-date" style="color:${dateColor}">${esc(fmtDate(instant, loc.tz))}${offTag}</div>
         </div>
+        <div class="dest-handle" aria-label="Drag to reorder">≡</div>
       </div>`;
   });
   if (dests.length > 0) html += '<div class="divider"></div>';
@@ -416,6 +419,60 @@ function swapToSource(id) {
   render();
 }
 
+// ── Drag-to-reorder destinations (Edit mode) ──────────────────────────────────
+let drag = null;
+function onDragMove(e) {
+  if (!drag) return;
+  e.preventDefault();
+  const dy = e.clientY - drag.startY;
+  drag.el.style.transform = `translateY(${dy}px)`;
+  let target = drag.fromIndex + Math.round(dy / drag.pitch);
+  target = Math.max(0, Math.min(drag.rows.length - 1, target));
+  if (target !== drag.target) {
+    drag.target = target;
+    drag.rows.forEach((r, i) => {
+      if (r === drag.el) return;
+      let shift = 0;
+      if (drag.fromIndex < target && i > drag.fromIndex && i <= target) shift = -drag.pitch;
+      else if (drag.fromIndex > target && i >= target && i < drag.fromIndex) shift = drag.pitch;
+      r.style.transform = shift ? `translateY(${shift}px)` : '';
+    });
+  }
+}
+function onDragEnd() {
+  if (!drag) return;
+  const d = drag; drag = null;
+  document.removeEventListener('pointermove', onDragMove);
+  document.removeEventListener('pointerup', onDragEnd);
+  document.removeEventListener('pointercancel', onDragEnd);
+  d.el.classList.remove('dragging');
+  d.rows.forEach((r) => { r.style.transform = ''; });
+  if (d.target !== d.fromIndex) {
+    const [item] = state.destIds.splice(d.fromIndex, 1);
+    state.destIds.splice(d.target, 0, item);
+    saveState();
+  }
+  render();
+}
+function startDrag(e) {
+  if (!editMode) return;
+  const handle = e.target.closest('.dest-handle');
+  if (!handle) return;
+  const row = handle.closest('.dest');
+  const rows = [...document.querySelectorAll('#destCard .dest')];
+  const fromIndex = rows.indexOf(row);
+  if (fromIndex === -1) return;
+  e.preventDefault();
+  const pitch = rows.length > 1
+    ? Math.abs(rows[1].getBoundingClientRect().top - rows[0].getBoundingClientRect().top)
+    : row.getBoundingClientRect().height;
+  drag = { startY: e.clientY, pitch, fromIndex, el: row, rows, target: fromIndex };
+  row.classList.add('dragging');
+  document.addEventListener('pointermove', onDragMove, { passive: false });
+  document.addEventListener('pointerup', onDragEnd);
+  document.addEventListener('pointercancel', onDragEnd);
+}
+
 // ─── Events ────────────────────────────────────────────────────────────────────
 $('#sourceBtn').addEventListener('click', () => openPicker('source'));
 $('#pickerCancel').addEventListener('click', closePicker);
@@ -426,6 +483,12 @@ $('#editBtn').addEventListener('click', () => {
   $('#swapHint').style.display = editMode ? 'none' : '';
 });
 $('#timeInput').addEventListener('input', () => { liveNow = false; render(); });
+$('#timeSlider').addEventListener('input', () => {
+  liveNow = false;
+  const mins = +$('#timeSlider').value;
+  $('#timeInput').value = `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
+  render();
+});
 $('#nowBtn').addEventListener('click', () => { liveNow = true; render(); });
 $('#dateInput').addEventListener('change', () => { liveNow = false; render(); });
 $('#pickerSearch').addEventListener('input', (e) => renderPickerList(e.target.value));
@@ -445,6 +508,8 @@ $('#destCard').addEventListener('click', (e) => {
   if (row) swapToSource(row.getAttribute('data-id'));
 });
 
+$('#destCard').addEventListener('pointerdown', startDrag);
+
 $('#pickerList').addEventListener('click', (e) => {
   const item = e.target.closest('[data-pick]');
   if (item) pick(item.getAttribute('data-pick'));
@@ -456,7 +521,7 @@ function init() {
   liveNow = true;
   render();
   setInterval(() => {
-    if (!liveNow) return;
+    if (drag || !liveNow) return;
     if ($('#timeInput').value !== nowHHMM(byId(state.sourceId).tz)) render();
   }, 1000);
 
