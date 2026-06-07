@@ -7,9 +7,9 @@ const L = (city, country, tz, flag, region, alt = '') => ({
   id: city + '-' + tz, city, country, tz, flag, region, alt,
 });
 
-const LOCATIONS = [
+const FEATURED = [
   // Americas
-  L('Los Angeles',  'USA',        'America/Los_Angeles',            '🇺🇸', 'Americas', 'California CA San Francisco SF Silicon Valley Seattle Pacific PST PDT West Coast'),
+  L('Los Angeles',  'USA',        'America/Los_Angeles',            '🇺🇸', 'Americas', 'California CA San Francisco SF Bay Area Silicon Valley Menlo Park Palo Alto San Jose Sunnyvale Cupertino Oakland Sacramento Seattle Portland Pacific PST PDT West Coast'),
   L('Anchorage',    'USA',        'America/Anchorage',              '🇺🇸', 'Americas', 'Alaska'),
   L('Honolulu',     'USA',        'Pacific/Honolulu',               '🇺🇸', 'Americas', 'Hawaii'),
   L('Denver',       'USA',        'America/Denver',                 '🇺🇸', 'Americas', 'Colorado Mountain MST MDT'),
@@ -100,7 +100,20 @@ const LOCATIONS = [
   L('Fiji',      'Fiji',        'Pacific/Fiji',        '🇫🇯', 'Oceania'),
 ];
 
-const byId = (id) => LOCATIONS.find((l) => l.id === id);
+// Featured cities (with flags/aliases) + every IANA world time zone (from zones.js).
+const _featuredIds = new Set(FEATURED.map((f) => f.id));
+const LOCATIONS = FEATURED.concat(
+  (typeof ALL_ZONES !== 'undefined' ? ALL_ZONES : []).filter((z) => !_featuredIds.has(z.id))
+);
+
+// The device's own time zone, as a pickable "Current location" option.
+function currentLocation() {
+  let tz = 'UTC';
+  try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch (_) {}
+  return { id: 'current', city: 'Current location', country: '', tz, flag: '📍', region: '', alt: 'here my location current' };
+}
+
+const byId = (id) => (id === 'current' ? currentLocation() : LOCATIONS.find((l) => l.id === id));
 
 // ─── Time helpers (full Intl tz support in browsers) ─────────────────────────
 function getParts(date, tz) {
@@ -230,7 +243,7 @@ function offsetPhrase(instant, fromTz, toTz) {
 
 // ─── State ───────────────────────────────────────────────────────────────────
 const DEFAULTS = {
-  sourceId: 'London-Europe/London',
+  sourceId: 'current',
   destIds: [
     'Los Angeles-America/Los_Angeles',
     'New York-America/New_York',
@@ -282,7 +295,7 @@ function renderSource(instant) {
   badge.alt = dn.period;
   const p = getParts(instant, s.tz);
   $('#timeSlider').value = (+p.hour) * 60 + (+p.minute);
-  $('#sourceLabel').textContent = `${s.flag}  ${s.city}, ${s.country}`;
+  $('#sourceLabel').textContent = s.country ? `${s.flag}  ${s.city}, ${s.country}` : `${s.flag}  ${s.city}`;
   $('#timeZoneLabel').textContent = tzAbbr(instant, s.tz);
   $('#heroTime').textContent = fmtTime(instant, s.tz);
   $('#whenLabel').textContent = `${fmtDate(instant, s.tz)} · ${relativeLabel(selectedDateStr(s.tz), s.tz)}`;
@@ -366,29 +379,41 @@ function renderPickerList(query) {
     ? new Set(state.destIds)
     : new Set([...state.destIds, state.sourceId]);
   const now = new Date();
+  const item = (loc, label) => {
+    const dn = dayNight(localHour(now, loc.tz));
+    return `<div class="picker-item" data-pick="${esc(loc.id)}">
+        <span>${label}</span>
+        <span class="now"><img class="dn-tile-sm" src="${dn.src}" alt=""> ${esc(fmtTime(now, loc.tz))}</span>
+      </div>`;
+  };
 
   let html = '';
   let total = 0;
+
+  // Your current location (auto-detected device time zone)
+  if (!excluded.has('current') && (q === '' || 'current location here my'.includes(q))) {
+    html += '<div class="picker-section">Your location</div>' + item(currentLocation(), '📍 Current location');
+    total += 1;
+  }
+
   for (const region of REGIONS) {
     const items = LOCATIONS.filter((l) =>
-      l.region === region &&
-      !excluded.has(l.id) &&
-      (q === '' ||
-        l.city.toLowerCase().includes(q) ||
-        l.country.toLowerCase().includes(q) ||
-        (l.alt && l.alt.toLowerCase().includes(q)))
+      l.region === region && !excluded.has(l.id) &&
+      (q === ''
+        ? l.flag !== '🌐'                       // empty query: featured cities only
+        : (l.city.toLowerCase().includes(q) ||  // typing: search every world zone
+           l.country.toLowerCase().includes(q) ||
+           (l.alt && l.alt.toLowerCase().includes(q))))
     );
     if (!items.length) continue;
     total += items.length;
     html += `<div class="picker-section">${region}</div>`;
     for (const l of items) {
-      html += `
-        <div class="picker-item" data-pick="${esc(l.id)}">
-          <span>${l.flag}  ${esc(l.city)}, ${esc(l.country)}</span>
-          <span class="now"><img class="dn-tile-sm" src="${dayNight(localHour(now, l.tz)).src}" alt=""> ${esc(fmtTime(now, l.tz))}</span>
-        </div>`;
+      html += item(l, `${l.flag}  ${esc(l.city)}${l.country ? ', ' + esc(l.country) : ''}`);
     }
   }
+
+  if (q === '') html += '<div class="picker-hint">Search to find any city or time zone worldwide</div>';
   if (total === 0) html = '<div class="no-results">No matching cities</div>';
   $('#pickerList').innerHTML = html;
 }
