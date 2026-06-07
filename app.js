@@ -106,14 +106,58 @@ const LOCATIONS = FEATURED.concat(
   (typeof ALL_ZONES !== 'undefined' ? ALL_ZONES : []).filter((z) => !_featuredIds.has(z.id))
 );
 
-// The device's own time zone, as a pickable "Current location" option.
-function currentLocation() {
-  let tz = 'UTC';
-  try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch (_) {}
-  return { id: 'current', city: 'Current location', country: '', tz, flag: '📍', region: '', alt: 'here my location current' };
+// Country code → flag emoji (for geocoded cities).
+function flagFromCC(cc) {
+  if (!cc || cc.length !== 2) return '🌐';
+  return String.fromCodePoint(...[...cc.toUpperCase()].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65));
 }
 
-const byId = (id) => (id === 'current' ? currentLocation() : LOCATIONS.find((l) => l.id === id));
+// Cities added via worldwide search — persisted so they survive reloads.
+let customLocations = [];
+try { customLocations = JSON.parse(localStorage.getItem('tzc-custom') || '[]'); } catch (_) {}
+function addCustom(loc) {
+  if (!customLocations.some((c) => c.id === loc.id)) {
+    customLocations.push(loc);
+    try { localStorage.setItem('tzc-custom', JSON.stringify(customLocations)); } catch (_) {}
+  }
+}
+
+function deviceTz() {
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch (_) { return 'UTC'; }
+}
+
+// "Current location" option — shows the real place name once reverse-geocoded.
+let geoLabel = null;
+try { geoLabel = JSON.parse(localStorage.getItem('tzc-geolabel') || 'null'); } catch (_) {}
+function currentLocation() {
+  const tz = deviceTz();
+  const label = (geoLabel && geoLabel.tz === tz && geoLabel.label) ? geoLabel.label : 'Current location';
+  return { id: 'current', city: label, country: '', tz, flag: '📍', region: '', alt: 'here my location current' };
+}
+// Ask for location once, reverse-geocode to "City, Region", cache it, re-render.
+function detectLocationName() {
+  const tz = deviceTz();
+  if ((geoLabel && geoLabel.tz === tz && geoLabel.label) || !navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(async (pos) => {
+    try {
+      const { latitude, longitude } = pos.coords;
+      const r = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`);
+      const d = await r.json();
+      const city = d.city || d.locality || d.principalSubdivision || '';
+      const region = d.principalSubdivision || d.countryName || '';
+      const label = city ? (region && region !== city ? `${city}, ${region}` : city) : '';
+      if (!label) return;
+      geoLabel = { tz: deviceTz(), label };
+      try { localStorage.setItem('tzc-geolabel', JSON.stringify(geoLabel)); } catch (_) {}
+      render();
+    } catch (_) {}
+  }, () => {}, { timeout: 8000, maximumAge: 3600000 });
+}
+
+const byId = (id) =>
+  id === 'current'
+    ? currentLocation()
+    : (LOCATIONS.find((l) => l.id === id) || customLocations.find((l) => l.id === id) || null);
 
 // ─── Time helpers (full Intl tz support in browsers) ─────────────────────────
 function getParts(date, tz) {
@@ -360,6 +404,7 @@ function openPicker(mode) {
   pickerMode = mode;
   $('#pickerTitle').textContent = mode === 'source' ? 'Select Source' : 'Add Destination';
   $('#pickerSearch').value = '';
+  geoResults = [];
   renderPickerList('');
   const p = $('#picker');
   p.hidden = false;
@@ -371,6 +416,29 @@ function closePicker() {
   p.classList.add('closing');
   setTimeout(() => { p.hidden = true; p.classList.remove('closing'); }, 280);
   pickerMode = null;
+}
+
+// Worldwide city search via Open-Meteo geocoding (resolves any city → its time zone).
+let geoResults = [];
+let geoTimer = null;
+function geoSearch(query) {
+  const q = query.trim();
+  clearTimeout(geoTimer);
+  if (q.length < 2) { geoResults = []; return; }
+  geoTimer = setTimeout(async () => {
+    try {
+      const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=8&language=en&format=json`);
+      const data = await r.json();
+      if ($('#pickerSearch').value.trim() !== q) return; // stale response
+      const seen = new Set();
+      geoResults = (data.results || []).filter((x) => x.timezone).map((x) => ({
+        id: 'geo:' + x.name + '|' + x.timezone,
+        city: x.name, country: x.country || '', tz: x.timezone,
+        flag: flagFromCC(x.country_code), region: 'geo', alt: x.admin1 || '', isGeo: true,
+      })).filter((g) => (seen.has(g.id) ? false : (seen.add(g.id), true)));
+      renderPickerList($('#pickerSearch').value);
+    } catch (_) {}
+  }, 300);
 }
 
 function renderPickerList(query) {
@@ -413,17 +481,33 @@ function renderPickerList(query) {
     }
   }
 
-  if (q === '') html += '<div class="picker-hint">Search to find any city or time zone worldwide</div>';
-  if (total === 0) html = '<div class="no-results">No matching cities</div>';
+  // Worldwide geocoded results (any city not in the built-in list, e.g. Shenzhen)
+  if (q !== '' && geoResults.length) {
+    const localKey = new Set(LOCATIONS.map((l) => l.city.toLowerCase() + '|' + l.tz));
+    const geoShow = geoResults.filter((g) => !excluded.has(g.id) && !localKey.has(g.city.toLowerCase() + '|' + g.tz));
+    if (geoShow.length) {
+      html += '<div class="picker-section">Worldwide</div>';
+      for (const g of geoShow) html += item(g, `${g.flag}  ${esc(g.city)}${g.country ? ', ' + esc(g.country) : ''}`);
+      total += geoShow.length;
+    }
+  }
+
+  if (q === '') html += '<div class="picker-hint">Search any city worldwide — e.g. Shenzhen, Menlo Park</div>';
+  if (total === 0) html = '<div class="no-results">Searching…</div>';
   $('#pickerList').innerHTML = html;
 }
 
 function pick(id) {
+  if (id.startsWith('geo:')) {
+    const g = geoResults.find((x) => x.id === id);
+    if (g) addCustom(g);
+  }
   if (pickerMode === 'source') {
     state.sourceId = id;
   } else {
     if (!state.destIds.includes(id)) state.destIds.push(id);
   }
+  if (id === 'current') detectLocationName();
   saveState();
   render();
   closePicker();
@@ -516,7 +600,7 @@ $('#timeSlider').addEventListener('input', () => {
 });
 $('#nowBtn').addEventListener('click', () => { liveNow = true; render(); });
 $('#dateInput').addEventListener('change', () => { liveNow = false; render(); });
-$('#pickerSearch').addEventListener('input', (e) => renderPickerList(e.target.value));
+$('#pickerSearch').addEventListener('input', (e) => { renderPickerList(e.target.value); geoSearch(e.target.value); });
 
 $('#destCard').addEventListener('click', (e) => {
   const del = e.target.closest('[data-del]');
@@ -545,6 +629,7 @@ function init() {
   // Start in "Now" mode — show the live current time, refreshing each minute.
   liveNow = true;
   render();
+  if (state.sourceId === 'current') detectLocationName();
   setInterval(() => {
     if (drag || !liveNow) return;
     if ($('#timeInput').value !== nowHHMM(byId(state.sourceId).tz)) render();

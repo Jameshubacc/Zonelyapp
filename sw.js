@@ -1,5 +1,5 @@
 // Service worker — offline app shell cache
-const CACHE = 'tz-converter-v5';
+const CACHE = 'tz-converter-v6';
 const ASSETS = [
   './',
   './index.html',
