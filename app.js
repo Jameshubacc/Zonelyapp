@@ -137,17 +137,17 @@ function currentLocation() {
 // Ask for location once, reverse-geocode to "City, Region", cache it, re-render.
 function detectLocationName() {
   const tz = deviceTz();
-  if ((geoLabel && geoLabel.tz === tz && geoLabel.label) || !navigator.geolocation) return;
+  if ((geoLabel && geoLabel.tz === tz && geoLabel.lang === LANG && geoLabel.label) || !navigator.geolocation) return;
   navigator.geolocation.getCurrentPosition(async (pos) => {
     try {
       const { latitude, longitude } = pos.coords;
-      const r = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`);
+      const r = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=${encodeURIComponent(LANG)}`);
       const d = await r.json();
       const city = d.city || d.locality || d.principalSubdivision || '';
       const region = d.principalSubdivision || d.countryName || '';
       const label = city ? (region && region !== city ? `${city}, ${region}` : city) : '';
       if (!label) return;
-      geoLabel = { tz: deviceTz(), label };
+      geoLabel = { tz: deviceTz(), lang: LANG, label };
       try { localStorage.setItem('tzc-geolabel', JSON.stringify(geoLabel)); } catch (_) {}
       render();
     } catch (_) {}
@@ -183,6 +183,33 @@ function setLang(lang) {
   try { localStorage.setItem('tzc-lang', LANG); } catch (_) {}
   applyStaticI18n();
   render();
+  if (state.sourceId === 'current') detectLocationName();
+}
+
+// Localized city + country names.
+function ccFromFlag(flag) {
+  if (!flag) return '';
+  const cps = [...flag].map((c) => c.codePointAt(0));
+  if (cps.length === 2 && cps.every((cp) => cp >= 0x1f1e6 && cp <= 0x1f1ff)) {
+    return String.fromCharCode(...cps.map((cp) => cp - 0x1f1e6 + 65));
+  }
+  return '';
+}
+const _regionNames = {};
+function localizedCountry(loc) {
+  const cc = ccFromFlag(loc.flag);
+  if (cc) {
+    try {
+      if (!_regionNames[LOCALE]) _regionNames[LOCALE] = new Intl.DisplayNames([LOCALE], { type: 'region' });
+      const n = _regionNames[LOCALE].of(cc);
+      if (n && n !== cc) return n;
+    } catch (_) {}
+  }
+  return loc.country || '';
+}
+function localizedCity(loc) {
+  const m = (typeof CITY_I18N !== 'undefined') && CITY_I18N[loc.city];
+  return (m && m[LANG]) || loc.city;
 }
 
 // ─── Time helpers (full Intl tz support in browsers) ─────────────────────────
@@ -307,7 +334,7 @@ function offsetPhrase(instant, fromTz, toTz) {
   if (diffMin === 0) return t('sameTime');
   const h = Math.floor(Math.abs(diffMin) / 60);
   const m = Math.abs(diffMin) % 60;
-  const x = h + 'h' + (m ? ' ' + m + 'm' : '');
+  const x = (h ? h + t('hUnit') : '') + (m ? m + t('minUnit') : '');
   return t(diffMin > 0 ? 'ahead' : 'behind', { x });
 }
 
@@ -365,7 +392,8 @@ function renderSource(instant) {
   badge.alt = dn.period;
   const p = getParts(instant, s.tz);
   $('#timeSlider').value = (+p.hour) * 60 + (+p.minute);
-  $('#sourceLabel').textContent = s.country ? `${s.flag}  ${s.city}, ${s.country}` : `${s.flag}  ${s.city}`;
+  const cn = localizedCountry(s);
+  $('#sourceLabel').textContent = cn ? `${s.flag}  ${localizedCity(s)}, ${cn}` : `${s.flag}  ${localizedCity(s)}`;
   $('#timeZoneLabel').textContent = tzAbbr(instant, s.tz);
   $('#heroTime').textContent = fmtTime(instant, s.tz);
   $('#whenLabel').textContent = `${fmtDate(instant, s.tz)} · ${relativeLabel(selectedDateStr(s.tz), s.tz)}`;
@@ -392,7 +420,7 @@ function renderDestinations(instant) {
         <img class="dn-tile" src="${dn.src}" alt="${dn.period}">
 
         <div class="dest-text">
-          <div class="dest-city">${loc.flag}  ${esc(loc.city)}</div>
+          <div class="dest-city">${loc.flag}  ${esc(localizedCity(loc))}</div>
           <div class="dest-sub">${esc(offsetPhrase(instant, src.tz, loc.tz))} · ${esc(tzAbbr(instant, loc.tz))}</div>
         </div>
         <div class="dest-right">
@@ -482,7 +510,7 @@ function geoSearch(query) {
   if (q.length < 2) { geoResults = []; return; }
   geoTimer = setTimeout(async () => {
     try {
-      const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=8&language=en&format=json`);
+      const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=8&language=${encodeURIComponent(LANG)}&format=json`);
       const data = await r.json();
       if ($('#pickerSearch').value.trim() !== q) return; // stale response
       const seen = new Set();
@@ -532,7 +560,8 @@ function renderPickerList(query) {
     total += items.length;
     html += `<div class="picker-section">${regionLabel(region)}</div>`;
     for (const l of items) {
-      html += item(l, `${l.flag}  ${esc(l.city)}${l.country ? ', ' + esc(l.country) : ''}`);
+      const cn = localizedCountry(l);
+      html += item(l, `${l.flag}  ${esc(localizedCity(l))}${cn ? ', ' + esc(cn) : ''}`);
     }
   }
 
@@ -542,7 +571,7 @@ function renderPickerList(query) {
     const geoShow = geoResults.filter((g) => !excluded.has(g.id) && !localKey.has(g.city.toLowerCase() + '|' + g.tz));
     if (geoShow.length) {
       html += '<div class="picker-section">' + t('worldwide') + '</div>';
-      for (const g of geoShow) html += item(g, `${g.flag}  ${esc(g.city)}${g.country ? ', ' + esc(g.country) : ''}`);
+      for (const g of geoShow) { const cn = localizedCountry(g); html += item(g, `${g.flag}  ${esc(localizedCity(g))}${cn ? ', ' + esc(cn) : ''}`); }
       total += geoShow.length;
     }
   }

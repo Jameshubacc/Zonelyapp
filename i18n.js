@@ -13,12 +13,12 @@ const I18N = {
     searching: "Searching…", noResults: "No matching cities",
     today: "Today", tomorrow: "Tomorrow", yesterday: "Yesterday",
     inDays: "In {n} days", daysAgo: "{n} days ago",
-    ahead: "{x} ahead", behind: "{x} behind", sameTime: "same time",
+    hUnit: "h", minUnit: "m", ahead: "{x} ahead", behind: "{x} behind", sameTime: "same time",
     regions: { "Americas": "Americas", "Europe": "Europe", "Middle East & Africa": "Middle East & Africa", "Asia": "Asia", "Oceania": "Oceania" },
   },
   zh: {
     langName: "中文", locale: "zh-CN",
-    convertFrom: "转换自", convertTo: "转换为",
+    convertFrom: "转换自", convertTo: "转换到",
     now: "现在", edit: "编辑", done: "完成", addCity: "+ 添加城市",
     swapHint: "点按城市将其移到顶部 ↑",
     settings: "设置", language: "语言",
@@ -29,7 +29,7 @@ const I18N = {
     searching: "搜索中…", noResults: "没有匹配的城市",
     today: "今天", tomorrow: "明天", yesterday: "昨天",
     inDays: "{n} 天后", daysAgo: "{n} 天前",
-    ahead: "快 {x}", behind: "慢 {x}", sameTime: "相同时间",
+    hUnit: "小时", minUnit: "分", ahead: "快{x}", behind: "慢{x}", sameTime: "相同时间",
     regions: { "Americas": "美洲", "Europe": "欧洲", "Middle East & Africa": "中东和非洲", "Asia": "亚洲", "Oceania": "大洋洲" },
   },
   es: {
@@ -45,7 +45,7 @@ const I18N = {
     searching: "Buscando…", noResults: "No hay ciudades",
     today: "Hoy", tomorrow: "Mañana", yesterday: "Ayer",
     inDays: "En {n} días", daysAgo: "Hace {n} días",
-    ahead: "{x} por delante", behind: "{x} por detrás", sameTime: "misma hora",
+    hUnit: "h", minUnit: "min", ahead: "{x} por delante", behind: "{x} por detrás", sameTime: "misma hora",
     regions: { "Americas": "América", "Europe": "Europa", "Middle East & Africa": "Oriente Medio y África", "Asia": "Asia", "Oceania": "Oceanía" },
   },
   fr: {
@@ -61,7 +61,7 @@ const I18N = {
     searching: "Recherche…", noResults: "Aucune ville",
     today: "Aujourd'hui", tomorrow: "Demain", yesterday: "Hier",
     inDays: "Dans {n} jours", daysAgo: "Il y a {n} jours",
-    ahead: "{x} en avance", behind: "{x} en retard", sameTime: "même heure",
+    hUnit: "h", minUnit: "min", ahead: "{x} en avance", behind: "{x} en retard", sameTime: "même heure",
     regions: { "Americas": "Amériques", "Europe": "Europe", "Middle East & Africa": "Moyen-Orient et Afrique", "Asia": "Asie", "Oceania": "Océanie" },
   },
   de: {
@@ -77,7 +77,7 @@ const I18N = {
     searching: "Suche…", noResults: "Keine Städte",
     today: "Heute", tomorrow: "Morgen", yesterday: "Gestern",
     inDays: "In {n} Tagen", daysAgo: "Vor {n} Tagen",
-    ahead: "{x} voraus", behind: "{x} zurück", sameTime: "gleiche Zeit",
+    hUnit: "h", minUnit: "min", ahead: "{x} voraus", behind: "{x} zurück", sameTime: "gleiche Zeit",
     regions: { "Americas": "Amerika", "Europe": "Europa", "Middle East & Africa": "Naher Osten & Afrika", "Asia": "Asien", "Oceania": "Ozeanien" },
   },
   ja: {
@@ -93,7 +93,7 @@ const I18N = {
     searching: "検索中…", noResults: "一致する都市がありません",
     today: "今日", tomorrow: "明日", yesterday: "昨日",
     inDays: "{n}日後", daysAgo: "{n}日前",
-    ahead: "{x} 進んでいる", behind: "{x} 遅れている", sameTime: "同じ時刻",
+    hUnit: "時間", minUnit: "分", ahead: "{x}進んでいる", behind: "{x}遅れている", sameTime: "同じ時刻",
     regions: { "Americas": "アメリカ", "Europe": "ヨーロッパ", "Middle East & Africa": "中東・アフリカ", "Asia": "アジア", "Oceania": "オセアニア" },
   },
   ko: {
@@ -109,7 +109,7 @@ const I18N = {
     searching: "검색 중…", noResults: "일치하는 도시 없음",
     today: "오늘", tomorrow: "내일", yesterday: "어제",
     inDays: "{n}일 후", daysAgo: "{n}일 전",
-    ahead: "{x} 빠름", behind: "{x} 느림", sameTime: "같은 시간",
+    hUnit: "시간", minUnit: "분", ahead: "{x} 빠름", behind: "{x} 느림", sameTime: "같은 시간",
     regions: { "Americas": "아메리카", "Europe": "유럽", "Middle East & Africa": "중동·아프리카", "Asia": "아시아", "Oceania": "오세아니아" },
   },
 };
