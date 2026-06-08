@@ -727,8 +727,20 @@ function init() {
   }, 1000);
 
   if ('serviceWorker' in navigator) {
+    const hadController = !!navigator.serviceWorker.controller;
+    let refreshing = false;
+    // When a new version takes control, reload once to show it (skip the first install).
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (refreshing || !hadController) return;
+      refreshing = true;
+      location.reload();
+    });
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').catch(() => {});
+      navigator.serviceWorker.register('sw.js').then((reg) => {
+        reg.update();                                   // check for a new version now
+        setInterval(() => reg.update(), 60 * 60 * 1000); // ...and hourly
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) reg.update(); });
+      }).catch(() => {});
     });
   }
 }

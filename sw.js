@@ -1,5 +1,5 @@
 // Service worker — offline app shell cache
-const CACHE = 'tz-converter-v9';
+const CACHE = 'tz-converter-v10';
 const ASSETS = [
   './',
   './index.html',
@@ -42,7 +42,7 @@ self.addEventListener('fetch', (e) => {
   if (url.origin !== self.location.origin) return; // let cross-origin pass through
 
   e.respondWith(
-    fetch(e.request)
+    fetch(e.request, { cache: 'no-store' })
       .then((resp) => {
         const copy = resp.clone();
         caches.open(CACHE).then((c) => c.put(e.request, copy)).catch(() => {});
