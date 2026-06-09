@@ -11,7 +11,9 @@
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-  <meta name="theme-color" content="#f2f2f7">
+  <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <meta name="color-scheme" content="light dark">
 
   <!-- iOS home-screen app -->
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -22,6 +24,7 @@
 
   <style>
     :root {
+      color-scheme: light dark;
       --bg: #f2f2f7;
       --card: #ffffff;
       --sep: #e6e6ea;
@@ -49,7 +52,9 @@
     }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html, body { margin: 0; padding: 0; }
+    html { background: var(--bg); min-height: 100%; }
     body {
+      min-height: 100vh;
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
       background: var(--bg);
       color: var(--text);
