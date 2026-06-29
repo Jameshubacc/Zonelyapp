@@ -141,7 +141,7 @@ function currentLocation() {
 // Ask for location once, reverse-geocode to "City, Region", cache it, re-render.
 function detectLocationName() {
   const tz = deviceTz();
-  if ((geoLabel && geoLabel.tz === tz && geoLabel.lang === LANG && geoLabel.label) || !navigator.geolocation) return;
+  if ((geoLabel && geoLabel.tz === tz && geoLabel.lang === LANG && geoLabel.label && geoLabel.lat != null) || !navigator.geolocation) return;
   navigator.geolocation.getCurrentPosition(async (pos) => {
     try {
       const { latitude, longitude } = pos.coords;
@@ -220,13 +220,28 @@ function localizedCity(loc) {
 let coordsByCity = {};
 try { coordsByCity = JSON.parse(localStorage.getItem('tzc-coords') || '{}'); } catch (_) {}
 let weatherByKey = {};   // "lat,lon" -> { times:[...UTC], temps:[...] }
-let weatherUnit = null;  // 'fahrenheit' | 'celsius'
+let weatherUnit = null;  // 'fahrenheit' | 'celsius' (null = auto-detect)
+try { weatherUnit = localStorage.getItem('tzc-unit') || null; } catch (_) {}
 let _wxTimer = null, _wxFetchedAt = 0, _wxKey = '';
 
 function detectUnit() {
   let region = '';
   try { region = (navigator.language || '').split('-')[1] || ''; } catch (_) {}
   return ['US', 'BS', 'BZ', 'KY', 'LR', 'PW', 'FM', 'MH'].includes(region.toUpperCase()) ? 'fahrenheit' : 'celsius';
+}
+// WMO weather code → emoji (day/night aware for clear-ish skies).
+function weatherIcon(code, night) {
+  if (code === 0) return night ? '🌙' : '☀️';
+  if (code === 1) return night ? '🌙' : '🌤️';
+  if (code === 2) return night ? '☁️' : '⛅';
+  if (code === 3) return '☁️';
+  if (code >= 45 && code <= 48) return '🌫️';
+  if (code >= 51 && code <= 67) return '🌧️';
+  if (code >= 71 && code <= 77) return '🌨️';
+  if (code >= 80 && code <= 82) return '🌦️';
+  if (code >= 85 && code <= 86) return '🌨️';
+  if (code >= 95) return '⛈️';
+  return '';
 }
 function coordKey(lat, lon) { return lat.toFixed(2) + ',' + lon.toFixed(2); }
 function coordsFor(loc) {
@@ -258,7 +273,9 @@ function tempFor(loc, instant) {
   const key = instant.toISOString().slice(0, 13) + ':00'; // YYYY-MM-DDTHH:00 (UTC)
   const i = w.times.indexOf(key);
   if (i < 0 || w.temps[i] == null) return '';
-  return Math.round(w.temps[i]) + '°' + (weatherUnit === 'fahrenheit' ? 'F' : 'C');
+  const h = +getParts(instant, loc.tz).hour;
+  const icon = (w.codes && w.codes[i] != null) ? weatherIcon(w.codes[i], h < 6 || h >= 20) : '';
+  return (icon ? icon + ' ' : '') + Math.round(w.temps[i]) + '°' + (weatherUnit === 'fahrenheit' ? 'F' : 'C');
 }
 // Resolve coords for all shown cities, fetch their hourly temps in one call, re-render.
 function updateWeather() {
@@ -277,12 +294,12 @@ function updateWeather() {
     if (key === _wxKey && Date.now() - _wxFetchedAt < 15 * 60 * 1000) return; // unchanged & fresh
     try {
       const lats = uniq.map((c) => c.lat).join(','), lons = uniq.map((c) => c.lon).join(',');
-      const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&hourly=temperature_2m&timezone=UTC&past_days=1&forecast_days=16&temperature_unit=${weatherUnit}`);
+      const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&hourly=temperature_2m,weather_code&timezone=UTC&past_days=1&forecast_days=16&temperature_unit=${weatherUnit}`);
       const data = await r.json();
       const arr = Array.isArray(data) ? data : [data];
       arr.forEach((d, idx) => {
         const c = uniq[idx];
-        if (c && d && d.hourly) weatherByKey[coordKey(c.lat, c.lon)] = { times: d.hourly.time, temps: d.hourly.temperature_2m };
+        if (c && d && d.hourly) weatherByKey[coordKey(c.lat, c.lon)] = { times: d.hourly.time, temps: d.hourly.temperature_2m, codes: d.hourly.weather_code };
       });
       _wxFetchedAt = Date.now();
       _wxKey = key;
@@ -545,6 +562,7 @@ function applyStaticI18n() {
   $('#pickerCancel').textContent = t('cancel');
   $('#pickerSearch').setAttribute('placeholder', t('search'));
   $('#settingsTitle').textContent = t('settings');
+  $('#settingsUnitLabel').textContent = t('temperature');
   $('#settingsLangLabel').textContent = t('language');
   $('#settingsCancel').textContent = t('cancel');
 }
@@ -557,7 +575,20 @@ function renderLangList() {
   }
   $('#langList').innerHTML = html;
 }
-function openSettings() { renderLangList(); $('#settings').hidden = false; }
+function renderUnitList() {
+  if (!weatherUnit) weatherUnit = detectUnit();
+  $('#unitList').innerHTML = [['fahrenheit', '°F'], ['celsius', '°C']].map(([u, lbl]) =>
+    `<div class="lang-item" data-unit="${u}"><span>${lbl}</span><span class="lang-check">${u === weatherUnit ? '✓' : ''}</span></div>`
+  ).join('');
+}
+function setUnit(u) {
+  weatherUnit = u;
+  try { localStorage.setItem('tzc-unit', u); } catch (_) {}
+  weatherByKey = {}; _wxKey = ''; _wxFetchedAt = 0; // force refetch in the new unit
+  renderUnitList();
+  updateWeather();
+}
+function openSettings() { renderLangList(); renderUnitList(); $('#settings').hidden = false; }
 function closeSettings() {
   const p = $('#settings');
   p.classList.add('closing');
@@ -763,6 +794,10 @@ $('#settingsCancel').addEventListener('click', closeSettings);
 $('#langList').addEventListener('click', (e) => {
   const it = e.target.closest('[data-lang]');
   if (it) { setLang(it.getAttribute('data-lang')); closeSettings(); }
+});
+$('#unitList').addEventListener('click', (e) => {
+  const it = e.target.closest('[data-unit]');
+  if (it) setUnit(it.getAttribute('data-unit'));
 });
 $('#timeInput').addEventListener('input', () => { liveNow = false; render(); });
 $('#timeSlider').addEventListener('input', () => {
