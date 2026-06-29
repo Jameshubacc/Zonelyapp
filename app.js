@@ -187,6 +187,7 @@ function setLang(lang) {
   try { localStorage.setItem('tzc-lang', LANG); } catch (_) {}
   applyStaticI18n();
   render();
+  renderCurrency();
   if (state.sourceId === 'current') detectLocationName();
 }
 
@@ -565,6 +566,13 @@ function applyStaticI18n() {
   $('#settingsUnitLabel').textContent = t('temperature');
   $('#settingsLangLabel').textContent = t('language');
   $('#settingsCancel').textContent = t('cancel');
+  // Currency tab
+  $('#tabTimeLabel').textContent = t('time');
+  $('#tabCurLabel').textContent = t('currencyTab');
+  $('#labelCurFrom').textContent = t('convertFrom');
+  $('#labelCurTo').textContent = t('convertTo');
+  $('#curEditBtn').textContent = curEditMode ? t('done') : t('edit');
+  $('#curSwapHint').textContent = t('curSwapHint');
 }
 
 // ─── Settings (language) ──────────────────────────────────────────────────────
@@ -755,29 +763,268 @@ function onDragEnd() {
   d.el.classList.remove('dragging');
   d.rows.forEach((r) => { r.style.transform = ''; });
   if (d.target !== d.fromIndex) {
-    const [item] = state.destIds.splice(d.fromIndex, 1);
-    state.destIds.splice(d.target, 0, item);
-    saveState();
+    const arr = d.isCur ? curState.targets : state.destIds;
+    const [item] = arr.splice(d.fromIndex, 1);
+    arr.splice(d.target, 0, item);
+    if (d.isCur) saveCur(); else saveState();
   }
-  render();
+  if (d.isCur) renderCurrency(); else render();
 }
 function startDrag(e) {
-  if (!editMode) return;
   const handle = e.target.closest('.dest-handle');
   if (!handle) return;
+  const card = handle.closest('.card');
+  const isCur = !!card && card.id === 'curDestCard';
+  if (isCur ? !curEditMode : !editMode) return;
   const row = handle.closest('.dest');
-  const rows = [...document.querySelectorAll('#destCard .dest')];
+  const rows = [...card.querySelectorAll('.dest')];
   const fromIndex = rows.indexOf(row);
   if (fromIndex === -1) return;
   e.preventDefault();
   const pitch = rows.length > 1
     ? Math.abs(rows[1].getBoundingClientRect().top - rows[0].getBoundingClientRect().top)
     : row.getBoundingClientRect().height;
-  drag = { startY: e.clientY, pitch, fromIndex, el: row, rows, target: fromIndex };
+  drag = { startY: e.clientY, pitch, fromIndex, el: row, rows, target: fromIndex, isCur };
   row.classList.add('dragging');
   document.addEventListener('pointermove', onDragMove, { passive: false });
   document.addEventListener('pointerup', onDragEnd);
   document.addEventListener('pointercancel', onDragEnd);
+}
+
+// ═══ Currency converter ═══════════════════════════════════════════════════════
+// Rates from open.er-api.com (free, keyless, USD-based); names via Intl.DisplayNames.
+const CURRENCIES = [
+  { code: 'USD', name: 'US Dollar',          flag: '🇺🇸', zero: false },
+  { code: 'EUR', name: 'Euro',               flag: '🇪🇺', zero: false },
+  { code: 'JPY', name: 'Japanese Yen',       flag: '🇯🇵', zero: true  },
+  { code: 'GBP', name: 'British Pound',      flag: '🇬🇧', zero: false },
+  { code: 'CAD', name: 'Canadian Dollar',    flag: '🇨🇦', zero: false },
+  { code: 'AUD', name: 'Australian Dollar',  flag: '🇦🇺', zero: false },
+  { code: 'CHF', name: 'Swiss Franc',        flag: '🇨🇭', zero: false },
+  { code: 'CNY', name: 'Chinese Yuan',       flag: '🇨🇳', zero: false },
+  { code: 'HKD', name: 'Hong Kong Dollar',   flag: '🇭🇰', zero: false },
+  { code: 'SGD', name: 'Singapore Dollar',   flag: '🇸🇬', zero: false },
+  { code: 'KRW', name: 'South Korean Won',   flag: '🇰🇷', zero: true  },
+  { code: 'INR', name: 'Indian Rupee',       flag: '🇮🇳', zero: false },
+  { code: 'MXN', name: 'Mexican Peso',       flag: '🇲🇽', zero: false },
+  { code: 'BRL', name: 'Brazilian Real',     flag: '🇧🇷', zero: false },
+  { code: 'NOK', name: 'Norwegian Krone',    flag: '🇳🇴', zero: false },
+  { code: 'SEK', name: 'Swedish Krona',      flag: '🇸🇪', zero: false },
+  { code: 'DKK', name: 'Danish Krone',       flag: '🇩🇰', zero: false },
+  { code: 'NZD', name: 'New Zealand Dollar', flag: '🇳🇿', zero: false },
+  { code: 'ZAR', name: 'South African Rand', flag: '🇿🇦', zero: false },
+  { code: 'AED', name: 'UAE Dirham',         flag: '🇦🇪', zero: false },
+  { code: 'SAR', name: 'Saudi Riyal',        flag: '🇸🇦', zero: false },
+  { code: 'THB', name: 'Thai Baht',          flag: '🇹🇭', zero: false },
+  { code: 'IDR', name: 'Indonesian Rupiah',  flag: '🇮🇩', zero: true  },
+  { code: 'MYR', name: 'Malaysian Ringgit',  flag: '🇲🇾', zero: false },
+  { code: 'PHP', name: 'Philippine Peso',    flag: '🇵🇭', zero: false },
+  { code: 'PLN', name: 'Polish Złoty',       flag: '🇵🇱', zero: false },
+  { code: 'CZK', name: 'Czech Koruna',       flag: '🇨🇿', zero: false },
+  { code: 'HUF', name: 'Hungarian Forint',   flag: '🇭🇺', zero: true  },
+  { code: 'TRY', name: 'Turkish Lira',       flag: '🇹🇷', zero: false },
+  { code: 'TWD', name: 'Taiwan Dollar',      flag: '🇹🇼', zero: false },
+  { code: 'ILS', name: 'Israeli Shekel',     flag: '🇮🇱', zero: false },
+  { code: 'QAR', name: 'Qatari Riyal',       flag: '🇶🇦', zero: false },
+  { code: 'KWD', name: 'Kuwaiti Dinar',      flag: '🇰🇼', zero: false },
+  { code: 'VND', name: 'Vietnamese Dong',    flag: '🇻🇳', zero: true  },
+  { code: 'PKR', name: 'Pakistani Rupee',    flag: '🇵🇰', zero: false },
+  { code: 'CLP', name: 'Chilean Peso',       flag: '🇨🇱', zero: true  },
+  { code: 'EGP', name: 'Egyptian Pound',     flag: '🇪🇬', zero: false },
+  { code: 'NGN', name: 'Nigerian Naira',     flag: '🇳🇬', zero: false },
+  { code: 'COP', name: 'Colombian Peso',     flag: '🇨🇴', zero: true  },
+  { code: 'ARS', name: 'Argentine Peso',     flag: '🇦🇷', zero: false },
+];
+function findCurrency(code) { return CURRENCIES.find((c) => c.code === code) || CURRENCIES[0]; }
+
+const _curNames = {};
+function curName(code) {
+  try {
+    if (!_curNames[LOCALE]) _curNames[LOCALE] = new Intl.DisplayNames([LOCALE], { type: 'currency' });
+    const n = _curNames[LOCALE].of(code);
+    if (n && n !== code) return n;
+  } catch (_) {}
+  return (findCurrency(code) || {}).name || code;
+}
+
+let curRates = {};
+try { curRates = JSON.parse(localStorage.getItem('er_rates') || '{}'); } catch (_) {}
+let curRatesAt = null;
+try { const s = localStorage.getItem('er_time'); if (s) curRatesAt = new Date(s); } catch (_) {}
+let curRatesDate = null;
+try { const s = localStorage.getItem('er_date'); if (s) curRatesDate = new Date(s); } catch (_) {}
+
+const CUR_DEFAULTS = { base: 'USD', amount: '100', targets: ['EUR', 'GBP', 'JPY', 'CNY', 'INR'] };
+let curEditMode = false;
+let curPickerMode = null; // 'base' | 'target'
+let _curFetching = false;
+let tab = 'time';
+try { tab = localStorage.getItem('tzc-tab') || 'time'; } catch (_) {}
+
+function loadCur() {
+  const valid = (c) => CURRENCIES.some((x) => x.code === c);
+  try {
+    const s = JSON.parse(localStorage.getItem('tzc-cur') || 'null');
+    if (s && s.base && valid(s.base) && Array.isArray(s.targets)) {
+      return {
+        base: s.base, amount: s.amount || '100',
+        targets: s.targets.filter((c, i, a) => valid(c) && c !== s.base && a.indexOf(c) === i),
+      };
+    }
+  } catch (_) {}
+  return { base: CUR_DEFAULTS.base, amount: CUR_DEFAULTS.amount, targets: CUR_DEFAULTS.targets.slice() };
+}
+let curState = loadCur();
+function saveCur() { try { localStorage.setItem('tzc-cur', JSON.stringify(curState)); } catch (_) {} }
+
+// Format money with the active locale; whole numbers for zero-decimal currencies and big amounts.
+function fmtMoney(amount, code) {
+  if (amount == null || isNaN(amount)) return '—';
+  if (amount === 0) return '0';
+  const zero = !!(findCurrency(code) || {}).zero;
+  const abs = Math.abs(amount);
+  if (abs >= 100000) return amount.toLocaleString(LOCALE, { maximumFractionDigits: 0 });
+  if (abs >= 1) return amount.toLocaleString(LOCALE, { minimumFractionDigits: 0, maximumFractionDigits: zero ? 0 : 2 });
+  return amount.toLocaleString(LOCALE, { maximumSignificantDigits: 4 });
+}
+function curConvert(amount, from, to) {
+  const f = curRates[from], tr = curRates[to];
+  if (!f || !tr) return null;
+  return (amount / f) * tr;
+}
+function curIsStale() {
+  return !curRatesAt || !Object.keys(curRates).length || (Date.now() - curRatesAt.getTime()) > 3600000;
+}
+function curStatusLabel() {
+  if (!Object.keys(curRates).length) return '';
+  const d = curRatesDate || curRatesAt;
+  if (!d) return '';
+  return t('ratesAsOf', { date: new Intl.DateTimeFormat(LOCALE, { month: 'short', day: 'numeric' }).format(d) });
+}
+async function fetchCurRates() {
+  if (_curFetching) return;
+  _curFetching = true;
+  const chev = $('#curRefresh') && $('#curRefresh').querySelector('.date-chev');
+  if (chev) chev.classList.add('spin');
+  try {
+    const res = await fetch('https://open.er-api.com/v6/latest/USD');
+    const json = await res.json();
+    if (json && json.rates && Object.keys(json.rates).length) {
+      curRates = json.rates;
+      curRatesAt = new Date();
+      curRatesDate = json.time_last_update_unix ? new Date(json.time_last_update_unix * 1000) : curRatesAt;
+      localStorage.setItem('er_rates', JSON.stringify(curRates));
+      localStorage.setItem('er_time', curRatesAt.toISOString());
+      localStorage.setItem('er_date', curRatesDate.toISOString());
+    }
+  } catch (_) { /* keep cached rates */ }
+  _curFetching = false;
+  if (chev) chev.classList.remove('spin');
+  renderCurrency();
+}
+
+function renderCurrency() {
+  const base = findCurrency(curState.base);
+  $('#curBaseFlag').textContent = base.flag;
+  $('#curBaseName').textContent = curName(base.code);
+  $('#curBaseCode').textContent = base.code;
+  const amtEl = $('#curAmount');
+  if (amtEl && document.activeElement !== amtEl) amtEl.value = curState.amount;
+  $('#curStatus').textContent = curStatusLabel();
+  renderCurTargets();
+}
+function renderCurTargets() {
+  const card = $('#curDestCard');
+  const amount = parseFloat(curState.amount) || 0;
+  let html = '';
+  curState.targets.forEach((code, i) => {
+    const c = findCurrency(code);
+    const val = curConvert(amount, curState.base, code);
+    const rate = curConvert(1, curState.base, code);
+    if (i > 0) html += '<div class="divider"></div>';
+    html += `
+      <div class="dest" data-cur="${esc(code)}">
+        <button class="del" data-curdel="${esc(code)}" aria-label="Remove ${esc(code)}">−</button>
+        <span class="cur-flag">${c.flag}</span>
+        <div class="dest-text">
+          <div class="dest-city">${esc(code)}</div>
+          <div class="dest-sub">${esc(curName(code))}</div>
+        </div>
+        <div class="dest-right">
+          <div class="dest-time">${val != null ? esc(fmtMoney(val, code)) : '—'}</div>
+          <div class="dest-date" style="color:var(--secondary)">${rate != null ? '1 ' + esc(curState.base) + ' = ' + esc(fmtMoney(rate, code)) : ''}</div>
+        </div>
+        <div class="dest-handle" aria-label="Drag to reorder">≡</div>
+      </div>`;
+  });
+  if (curState.targets.length) html += '<div class="divider"></div>';
+  html += '<button class="row link-row" id="curAddBtn"><span>' + t('addCurrency') + '</span></button>';
+  card.innerHTML = html;
+  card.classList.toggle('editing', curEditMode);
+}
+
+function openCurPicker(mode) {
+  curPickerMode = mode;
+  $('#curPickerTitle').textContent = t('selectCurrency');
+  $('#curPickerSearch').value = '';
+  renderCurPickerList('');
+  const p = $('#curPicker');
+  p.hidden = false;
+  $('#curPickerSearch').focus();
+}
+function closeCurPicker() {
+  const p = $('#curPicker');
+  p.classList.add('closing');
+  setTimeout(() => { p.hidden = true; p.classList.remove('closing'); }, 280);
+  curPickerMode = null;
+}
+function renderCurPickerList(query) {
+  const q = query.trim().toLowerCase();
+  const excluded = curPickerMode === 'base' ? new Set() : new Set(curState.targets.concat(curState.base));
+  let html = '', n = 0;
+  for (const c of CURRENCIES) {
+    if (excluded.has(c.code)) continue;
+    if (q && !(c.code.toLowerCase().includes(q) || c.name.toLowerCase().includes(q) || curName(c.code).toLowerCase().includes(q))) continue;
+    const sel = curPickerMode === 'base' && c.code === curState.base;
+    html += `<div class="picker-item" data-curpick="${c.code}">
+        <span>${c.flag}&nbsp; <b>${esc(c.code)}</b> · ${esc(curName(c.code))}</span>
+        <span class="now">${sel ? '✓' : ''}</span>
+      </div>`;
+    n++;
+  }
+  if (!n) html = '<div class="no-results">' + t('noResults') + '</div>';
+  $('#curPickerList').innerHTML = html;
+}
+function pickCur(code) {
+  if (curPickerMode === 'base') {
+    curState.targets = curState.targets.filter((c) => c !== code);
+    curState.base = code;
+  } else if (code !== curState.base && !curState.targets.includes(code)) {
+    curState.targets.push(code);
+  }
+  saveCur();
+  renderCurrency();
+  closeCurPicker();
+}
+// Tap a target currency to make it the base; the old base drops into its slot.
+function swapCurToBase(code) {
+  const idx = curState.targets.indexOf(code);
+  if (idx === -1) return;
+  curState.targets[idx] = curState.base;
+  curState.base = code;
+  saveCur();
+  renderCurrency();
+}
+
+// ─── Tabs (Time / Currency) ────────────────────────────────────────────────────
+function setTab(tn) {
+  tab = tn;
+  try { localStorage.setItem('tzc-tab', tn); } catch (_) {}
+  $('#timeView').hidden = tn !== 'time';
+  $('#currencyView').hidden = tn !== 'currency';
+  $('#tabTime').classList.toggle('active', tn === 'time');
+  $('#tabCur').classList.toggle('active', tn === 'currency');
+  if (tn === 'currency') { renderCurrency(); if (curIsStale()) fetchCurRates(); }
 }
 
 // ─── Events ────────────────────────────────────────────────────────────────────
@@ -832,12 +1079,57 @@ $('#pickerList').addEventListener('click', (e) => {
   if (item) pick(item.getAttribute('data-pick'));
 });
 
+// Currency tab
+$('#tabTime').addEventListener('click', () => setTab('time'));
+$('#tabCur').addEventListener('click', () => setTab('currency'));
+$('#curBaseBtn').addEventListener('click', () => openCurPicker('base'));
+$('#curRefresh').addEventListener('click', fetchCurRates);
+$('#curAmount').addEventListener('input', (e) => {
+  let v = e.target.value.replace(/[^0-9.]/g, '');
+  const parts = v.split('.');
+  if (parts.length > 2) v = parts[0] + '.' + parts.slice(1).join('');
+  if (e.target.value !== v) e.target.value = v;
+  curState.amount = v;
+  saveCur();
+  renderCurTargets();
+  $('#curStatus').textContent = curStatusLabel();
+});
+$('#curEditBtn').addEventListener('click', () => {
+  curEditMode = !curEditMode;
+  $('#curEditBtn').textContent = curEditMode ? t('done') : t('edit');
+  $('#curDestCard').classList.toggle('editing', curEditMode);
+  $('#curSwapHint').style.display = curEditMode ? 'none' : '';
+});
+$('#curDestCard').addEventListener('click', (e) => {
+  const del = e.target.closest('[data-curdel]');
+  if (del) {
+    const code = del.getAttribute('data-curdel');
+    curState.targets = curState.targets.filter((c) => c !== code);
+    saveCur();
+    renderCurrency();
+    return;
+  }
+  if (e.target.closest('#curAddBtn')) { openCurPicker('target'); return; }
+  if (curEditMode) return;
+  const row = e.target.closest('.dest');
+  if (row) swapCurToBase(row.getAttribute('data-cur'));
+});
+$('#curDestCard').addEventListener('pointerdown', startDrag);
+$('#curPickerCancel').addEventListener('click', closeCurPicker);
+$('#curPickerSearch').addEventListener('input', (e) => renderCurPickerList(e.target.value));
+$('#curPickerList').addEventListener('click', (e) => {
+  const it = e.target.closest('[data-curpick]');
+  if (it) pickCur(it.getAttribute('data-curpick'));
+});
+
 // ─── Init ──────────────────────────────────────────────────────────────────────
 function init() {
   // Start in "Now" mode — show the live current time, refreshing each minute.
   liveNow = true;
   applyStaticI18n();
   render();
+  setTab(tab);
+  if (curIsStale()) fetchCurRates();
   if (state.sourceId === 'current') detectLocationName();
   setInterval(() => {
     if (drag || !liveNow) return;

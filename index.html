@@ -176,6 +176,24 @@
     .picker-item .now { font-size: 14px; color: var(--secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
     .no-results { padding: 40px 16px; text-align: center; color: var(--secondary); }
     .picker-hint { padding: 18px 16px 40px; text-align: center; color: var(--secondary); font-size: 13px; }
+    .picker-item b { font-weight: 700; }
+
+    /* Currency tab */
+    #timeView, #currencyView { padding-bottom: 88px; }
+    .cur-flag { flex: none; width: 42px; height: 42px; border-radius: 11px; display: grid; place-items: center; font-size: 26px; line-height: 1; background: var(--pill); }
+    .cur-amount { width: 100%; font: inherit; font-size: 42px; font-weight: 800; letter-spacing: -1.5px; font-variant-numeric: tabular-nums; color: var(--text); background: none; border: none; padding: 2px 16px 6px; outline: none; -webkit-user-select: text; user-select: text; }
+    .cur-amount::placeholder { color: var(--secondary); }
+    #curRefresh { background: none; border: none; cursor: pointer; }
+    .date-chev.spin { display: inline-block; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Bottom tab bar */
+    .tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; display: flex; background: var(--card); border-top: 0.5px solid var(--sep); padding-bottom: env(safe-area-inset-bottom); }
+    .tab { flex: 1; background: none; border: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 0 6px; color: var(--secondary); font: inherit; }
+    .tab-ico { font-size: 22px; line-height: 1; filter: grayscale(1); opacity: 0.55; }
+    .tab-label { font-size: 11px; font-weight: 600; }
+    .tab.active { color: var(--blue); }
+    .tab.active .tab-ico { filter: none; opacity: 1; }
   </style>
 </head>
 <body>
@@ -185,6 +203,7 @@
     <button class="gear-btn" id="settingsBtn" type="button" aria-label="Settings">⚙️</button>
   </header>
 
+  <main id="timeView">
   <div class="section-label" id="labelFrom">CONVERT FROM</div>
   <div class="card hero-card">
     <button class="city-row" id="sourceBtn">
@@ -224,6 +243,39 @@
   </div>
   <div class="hint" id="swapHint">Tap a city to swap it to the top ↑</div>
   <div class="card" id="destCard"></div>
+  </main>
+
+  <!-- Currency view -->
+  <main id="currencyView" hidden>
+    <div class="section-label" id="labelCurFrom">CONVERT FROM</div>
+    <div class="card hero-card">
+      <button class="city-row" id="curBaseBtn">
+        <span class="cur-flag" id="curBaseFlag">🇺🇸</span>
+        <span class="city-text">
+          <span class="city-name" id="curBaseName">US Dollar</span>
+          <span class="city-sub" id="curBaseCode">USD</span>
+        </span>
+        <span class="chevron">›</span>
+      </button>
+
+      <div class="hero-main">
+        <input id="curAmount" class="cur-amount" type="text" inputmode="decimal" autocomplete="off" placeholder="0" value="100" aria-label="Amount">
+      </div>
+
+      <div class="date-line">
+        <button class="date-chip" id="curRefresh" type="button">
+          <span class="date-ico">💱</span><span id="curStatus"></span><span class="date-chev">↻</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="section-head">
+      <span id="labelCurTo">CONVERT TO</span>
+      <button class="edit-btn" id="curEditBtn" type="button">Edit</button>
+    </div>
+    <div class="hint" id="curSwapHint">Tap a currency to set it as the base ↑</div>
+    <div class="card" id="curDestCard"></div>
+  </main>
 
   <!-- City picker -->
   <div class="picker" id="picker" hidden>
@@ -253,9 +305,28 @@
     </div>
   </div>
 
-  <script src="i18n.js?v=13"></script>
-  <script src="cities-i18n.js?v=13"></script>
-  <script src="zones.js?v=13"></script>
-  <script src="app.js?v=13"></script>
+  <!-- Currency picker -->
+  <div class="picker" id="curPicker" hidden>
+    <div class="picker-header">
+      <button id="curPickerCancel">Cancel</button>
+      <span class="picker-title" id="curPickerTitle">Select Currency</span>
+      <span style="width:56px"></span>
+    </div>
+    <div class="picker-search">
+      <input id="curPickerSearch" type="search" placeholder="Search…" autocomplete="off" autocorrect="off">
+    </div>
+    <div class="picker-list" id="curPickerList"></div>
+  </div>
+
+  <!-- Bottom tab bar -->
+  <nav class="tabbar" id="tabBar">
+    <button class="tab" id="tabTime" type="button"><span class="tab-ico">🕐</span><span class="tab-label" id="tabTimeLabel">Time</span></button>
+    <button class="tab" id="tabCur" type="button"><span class="tab-ico">💱</span><span class="tab-label" id="tabCurLabel">Currency</span></button>
+  </nav>
+
+  <script src="i18n.js?v=15"></script>
+  <script src="cities-i18n.js?v=15"></script>
+  <script src="zones.js?v=15"></script>
+  <script src="app.js?v=15"></script>
 </body>
 </html>
