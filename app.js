@@ -131,8 +131,12 @@ let geoLabel = null;
 try { geoLabel = JSON.parse(localStorage.getItem('tzc-geolabel') || 'null'); } catch (_) {}
 function currentLocation() {
   const tz = deviceTz();
-  const label = (geoLabel && geoLabel.tz === tz && geoLabel.label) ? geoLabel.label : t('currentLocation');
-  return { id: 'current', city: label, country: '', tz, flag: '📍', region: '', alt: 'here my location current' };
+  const ok = !!(geoLabel && geoLabel.tz === tz);
+  return {
+    id: 'current', city: ok && geoLabel.label ? geoLabel.label : t('currentLocation'),
+    country: '', tz, flag: '📍', region: '', alt: 'here my location current',
+    lat: ok ? geoLabel.lat : undefined, lon: ok ? geoLabel.lon : undefined,
+  };
 }
 // Ask for location once, reverse-geocode to "City, Region", cache it, re-render.
 function detectLocationName() {
@@ -147,7 +151,7 @@ function detectLocationName() {
       const region = d.principalSubdivision || d.countryName || '';
       const label = city ? (region && region !== city ? `${city}, ${region}` : city) : '';
       if (!label) return;
-      geoLabel = { tz: deviceTz(), lang: LANG, label };
+      geoLabel = { tz: deviceTz(), lang: LANG, label, lat: latitude, lon: longitude };
       try { localStorage.setItem('tzc-geolabel', JSON.stringify(geoLabel)); } catch (_) {}
       render();
     } catch (_) {}
@@ -210,6 +214,81 @@ function localizedCountry(loc) {
 function localizedCity(loc) {
   const m = (typeof CITY_I18N !== 'undefined') && CITY_I18N[loc.city];
   return (m && m[LANG]) || loc.city;
+}
+
+// ─── Weather (Open-Meteo) — temperature at the displayed moment ───────────────
+let coordsByCity = {};
+try { coordsByCity = JSON.parse(localStorage.getItem('tzc-coords') || '{}'); } catch (_) {}
+let weatherByKey = {};   // "lat,lon" -> { times:[...UTC], temps:[...] }
+let weatherUnit = null;  // 'fahrenheit' | 'celsius'
+let _wxTimer = null, _wxFetchedAt = 0, _wxKey = '';
+
+function detectUnit() {
+  let region = '';
+  try { region = (navigator.language || '').split('-')[1] || ''; } catch (_) {}
+  return ['US', 'BS', 'BZ', 'KY', 'LR', 'PW', 'FM', 'MH'].includes(region.toUpperCase()) ? 'fahrenheit' : 'celsius';
+}
+function coordKey(lat, lon) { return lat.toFixed(2) + ',' + lon.toFixed(2); }
+function coordsFor(loc) {
+  if (loc && loc.lat != null && loc.lon != null) return { lat: loc.lat, lon: loc.lon };
+  return (loc && coordsByCity[loc.city]) || null;
+}
+async function ensureCoords(loc) {
+  const have = coordsFor(loc);
+  if (have) return have;
+  if (!loc || !loc.city) return null;
+  try {
+    const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(loc.city)}&count=1&language=en&format=json`);
+    const d = await r.json();
+    const hit = (d.results || [])[0];
+    if (hit) {
+      coordsByCity[loc.city] = { lat: hit.latitude, lon: hit.longitude };
+      try { localStorage.setItem('tzc-coords', JSON.stringify(coordsByCity)); } catch (_) {}
+      return coordsByCity[loc.city];
+    }
+  } catch (_) {}
+  return null;
+}
+// Temperature string for a city at a specific instant (matched to that UTC hour).
+function tempFor(loc, instant) {
+  const c = coordsFor(loc);
+  if (!c) return '';
+  const w = weatherByKey[coordKey(c.lat, c.lon)];
+  if (!w) return '';
+  const key = instant.toISOString().slice(0, 13) + ':00'; // YYYY-MM-DDTHH:00 (UTC)
+  const i = w.times.indexOf(key);
+  if (i < 0 || w.temps[i] == null) return '';
+  return Math.round(w.temps[i]) + '°' + (weatherUnit === 'fahrenheit' ? 'F' : 'C');
+}
+// Resolve coords for all shown cities, fetch their hourly temps in one call, re-render.
+function updateWeather() {
+  clearTimeout(_wxTimer);
+  _wxTimer = setTimeout(async () => {
+    if (!weatherUnit) weatherUnit = detectUnit();
+    const locs = [byId(state.sourceId), ...state.destIds.map(byId)].filter(Boolean);
+    const uniq = [], seen = new Set();
+    for (const loc of locs) {
+      let c = coordsFor(loc);
+      if (!c) c = await ensureCoords(loc);
+      if (c) { const k = coordKey(c.lat, c.lon); if (!seen.has(k)) { seen.add(k); uniq.push(c); } }
+    }
+    if (!uniq.length) return;
+    const key = uniq.map((c) => coordKey(c.lat, c.lon)).sort().join('|') + '|' + weatherUnit;
+    if (key === _wxKey && Date.now() - _wxFetchedAt < 15 * 60 * 1000) return; // unchanged & fresh
+    try {
+      const lats = uniq.map((c) => c.lat).join(','), lons = uniq.map((c) => c.lon).join(',');
+      const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&hourly=temperature_2m&timezone=UTC&past_days=1&forecast_days=16&temperature_unit=${weatherUnit}`);
+      const data = await r.json();
+      const arr = Array.isArray(data) ? data : [data];
+      arr.forEach((d, idx) => {
+        const c = uniq[idx];
+        if (c && d && d.hourly) weatherByKey[coordKey(c.lat, c.lon)] = { times: d.hourly.time, temps: d.hourly.temperature_2m };
+      });
+      _wxFetchedAt = Date.now();
+      _wxKey = key;
+      render();
+    } catch (_) {}
+  }, 250);
 }
 
 // ─── Time helpers (full Intl tz support in browsers) ─────────────────────────
@@ -394,7 +473,8 @@ function renderSource(instant) {
   $('#timeSlider').value = (+p.hour) * 60 + (+p.minute);
   const cn = localizedCountry(s);
   $('#sourceLabel').textContent = cn ? `${s.flag}  ${localizedCity(s)}, ${cn}` : `${s.flag}  ${localizedCity(s)}`;
-  $('#timeZoneLabel').textContent = tzAbbr(instant, s.tz);
+  const stemp = tempFor(s, instant);
+  $('#timeZoneLabel').textContent = tzAbbr(instant, s.tz) + (stemp ? ' · ' + stemp : '');
   $('#heroTime').textContent = fmtTime(instant, s.tz);
   $('#whenLabel').textContent = `${fmtDate(instant, s.tz)} · ${relativeLabel(selectedDateStr(s.tz), s.tz)}`;
 }
@@ -413,6 +493,7 @@ function renderDestinations(instant) {
     const dn = dayNight(localHour(instant, loc.tz));
     const dateColor = off > 0 ? 'var(--orange)' : off < 0 ? 'var(--purple)' : 'var(--secondary)';
     const offTag = off > 0 ? ` (+${off})` : off < 0 ? ` (${off})` : '';
+    const tp = tempFor(loc, instant);
     if (i > 0) html += '<div class="divider"></div>';
     html += `
       <div class="dest" data-id="${esc(loc.id)}">
@@ -421,7 +502,7 @@ function renderDestinations(instant) {
 
         <div class="dest-text">
           <div class="dest-city">${loc.flag}  ${esc(localizedCity(loc))}</div>
-          <div class="dest-sub">${esc(offsetPhrase(instant, src.tz, loc.tz))} · ${esc(tzAbbr(instant, loc.tz))}</div>
+          <div class="dest-sub">${esc(offsetPhrase(instant, src.tz, loc.tz))} · ${tp ? esc(tp) : esc(tzAbbr(instant, loc.tz))}</div>
         </div>
         <div class="dest-right">
           <div class="dest-time">${esc(fmtTime(instant, loc.tz))}</div>
@@ -451,6 +532,7 @@ function render() {
   renderSource(instant);
   renderDestinations(instant);
   updateNowBtn();
+  updateWeather();
 }
 
 // Apply translations to the static UI elements.
@@ -518,6 +600,7 @@ function geoSearch(query) {
         id: 'geo:' + x.name + '|' + x.timezone,
         city: x.name, country: x.country || '', tz: x.timezone,
         flag: flagFromCC(x.country_code), region: 'geo', alt: x.admin1 || '', isGeo: true,
+        lat: x.latitude, lon: x.longitude,
       })).filter((g) => (seen.has(g.id) ? false : (seen.add(g.id), true)));
       renderPickerList($('#pickerSearch').value);
     } catch (_) {}
