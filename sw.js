@@ -1,12 +1,12 @@
 // Service worker — offline app shell cache
-const CACHE = 'tz-converter-v17';
+const CACHE = 'tz-converter-v18';
 const ASSETS = [
   './',
   './index.html',
-  './app.js?v=17',
-  './i18n.js?v=17',
-  './cities-i18n.js?v=17',
-  './zones.js?v=17',
+  './app.js?v=18',
+  './i18n.js?v=18',
+  './cities-i18n.js?v=18',
+  './zones.js?v=18',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',

@@ -310,14 +310,20 @@ function updateWeather() {
 }
 
 // ─── Time helpers (full Intl tz support in browsers) ─────────────────────────
+// Intl.DateTimeFormat objects are costly to build; cache them by locale + options.
+const _dtfCache = {};
+function dtf(locale, opts) {
+  const key = locale + '|' + JSON.stringify(opts);
+  return _dtfCache[key] || (_dtfCache[key] = new Intl.DateTimeFormat(locale, opts));
+}
+
 function getParts(date, tz) {
-  const dtf = new Intl.DateTimeFormat('en-US', {
+  const o = {};
+  for (const p of dtf('en-US', {
     timeZone: tz, hour12: false,
     year: 'numeric', month: '2-digit', day: '2-digit',
     hour: '2-digit', minute: '2-digit', second: '2-digit',
-  });
-  const o = {};
-  for (const p of dtf.formatToParts(date)) if (p.type !== 'literal') o[p.type] = p.value;
+  }).formatToParts(date)) if (p.type !== 'literal') o[p.type] = p.value;
   if (o.hour === '24') o.hour = '00'; // some engines emit 24 for midnight
   return o;
 }
@@ -339,23 +345,18 @@ function wallToInstant(y, mo, d, h, mi, tz) {
 }
 
 function fmtTime(instant, tz) {
-  return new Intl.DateTimeFormat(LOCALE, {
-    hour: 'numeric', minute: '2-digit', timeZone: tz,
-  }).format(instant);
+  return dtf(LOCALE, { hour: 'numeric', minute: '2-digit', timeZone: tz }).format(instant);
 }
 
 function tzAbbr(instant, tz) {
-  const parts = new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'short' })
-    .formatToParts(instant);
+  const parts = dtf('en-US', { timeZone: tz, timeZoneName: 'short' }).formatToParts(instant);
   const p = parts.find((x) => x.type === 'timeZoneName');
   return p ? p.value : '';
 }
 
 // "Sat, Jun 6" in the given zone
 function fmtDate(instant, tz) {
-  return new Intl.DateTimeFormat(LOCALE, {
-    weekday: 'short', month: 'short', day: 'numeric', timeZone: tz,
-  }).format(instant);
+  return dtf(LOCALE, { weekday: 'short', month: 'short', day: 'numeric', timeZone: tz }).format(instant);
 }
 
 // Current wall-clock "HH:MM" (24h) in the given zone, for the <input type=time>.
@@ -404,7 +405,7 @@ function stepDay(delta) {
 }
 
 function dayOffset(instant, fromTz, toTz) {
-  const dayStr = (tz) => new Intl.DateTimeFormat('en-CA', {
+  const dayStr = (tz) => dtf('en-CA', {
     timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
   }).format(instant);
   const fromDay = dayStr(fromTz), toDay = dayStr(toTz);
@@ -911,7 +912,7 @@ function curStatusLabel() {
   if (!Object.keys(curRates).length) return '';
   const d = curRatesDate || curRatesAt;
   if (!d) return '';
-  return t('ratesAsOf', { date: new Intl.DateTimeFormat(LOCALE, { month: 'short', day: 'numeric' }).format(d) });
+  return t('ratesAsOf', { date: dtf(LOCALE, { month: 'short', day: 'numeric' }).format(d) });
 }
 async function fetchCurRates() {
   if (_curFetching) return;
@@ -1075,11 +1076,13 @@ $('#unitList').addEventListener('click', (e) => {
   if (it) setUnit(it.getAttribute('data-unit'));
 });
 $('#timeInput').addEventListener('input', () => { liveNow = false; render(); });
+let _sliderRaf = 0;
 $('#timeSlider').addEventListener('input', () => {
   liveNow = false;
   const mins = +$('#timeSlider').value;
   $('#timeInput').value = `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
-  render();
+  if (_sliderRaf) return;                 // coalesce rapid drags to one render per frame
+  _sliderRaf = requestAnimationFrame(() => { _sliderRaf = 0; render(); });
 });
 $('#nowBtn').addEventListener('click', () => { liveNow = true; render(); });
 $('#dateInput').addEventListener('change', () => { liveNow = false; render(); });
