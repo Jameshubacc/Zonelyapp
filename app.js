@@ -935,6 +935,19 @@ async function fetchCurRates() {
   renderCurrency();
 }
 
+// Shrink the big amount font until it fits the field (large VND numbers, etc.).
+function sizeAmount() {
+  const el = $('#curAmount');
+  if (!el) return;
+  el.style.fontSize = '';
+  if (!el.clientWidth) return; // hidden — will size when the tab is shown
+  let size = 42;
+  while (size > 18 && el.scrollWidth > el.clientWidth) {
+    size -= 2;
+    el.style.fontSize = size + 'px';
+  }
+}
+
 function renderCurrency() {
   const base = findCurrency(curState.base);
   $('#curBaseFlag').textContent = base.flag;
@@ -942,6 +955,7 @@ function renderCurrency() {
   $('#curBaseCode').textContent = base.code;
   const amtEl = $('#curAmount');
   if (amtEl && document.activeElement !== amtEl) amtEl.value = formatAmount(curState.amount);
+  sizeAmount();
   $('#curStatus').textContent = curStatusLabel();
   renderCurTargets();
 }
@@ -953,6 +967,8 @@ function renderCurTargets() {
     const c = findCurrency(code);
     const val = curConvert(amount, curState.base, code);
     const rate = curConvert(1, curState.base, code);
+    const amtStr = val != null ? fmtMoney(val, code) : '—';
+    const amtCls = amtStr.length > 12 ? ' amt-sm' : amtStr.length > 9 ? ' amt-md' : '';
     if (i > 0) html += '<div class="divider"></div>';
     html += `
       <div class="dest" data-cur="${esc(code)}">
@@ -963,7 +979,7 @@ function renderCurTargets() {
           <div class="dest-sub">${esc(curName(code))}</div>
         </div>
         <div class="dest-right">
-          <div class="dest-time">${val != null ? esc(fmtMoney(val, code)) : '—'}</div>
+          <div class="dest-time${amtCls}">${esc(amtStr)}</div>
           <div class="dest-date" style="color:var(--secondary)">${rate != null ? '1 ' + esc(curState.base) + ' = ' + esc(fmtMoney(rate, code)) : ''}</div>
         </div>
         <div class="dest-handle" aria-label="Drag to reorder">≡</div>
@@ -1108,6 +1124,7 @@ $('#curAmount').addEventListener('input', (e) => {
   saveCur();
   const formatted = formatAmount(raw);
   el.value = formatted;
+  sizeAmount();
   // Restore the caret after the same number of non-comma characters.
   let pos = 0, seen = 0;
   while (pos < formatted.length && seen < sigBefore) {

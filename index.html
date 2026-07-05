@@ -151,10 +151,12 @@
     .del { display: none; flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--red); color: #fff; border: none; font-size: 22px; line-height: 1; cursor: pointer; place-items: center; }
     .card.editing .del { display: grid; }
     .dest-text { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-    .dest-city { font-size: 16px; font-weight: 600; }
-    .dest-sub { font-size: 13px; color: var(--secondary); }
-    .dest-right { text-align: right; flex: none; }
-    .dest-time { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.5px; }
+    .dest-city { font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dest-sub { font-size: 13px; color: var(--secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dest-right { text-align: right; flex: none; max-width: 58%; }
+    .dest-time { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.5px; white-space: nowrap; }
+    .dest-time.amt-md { font-size: 18px; }
+    .dest-time.amt-sm { font-size: 15px; }
     .dest-date { font-size: 12px; font-weight: 600; margin-top: 2px; font-variant-numeric: tabular-nums; }
 
     .row { display: flex; align-items: center; width: 100%; padding: 15px 16px; background: none; border: none; font: inherit; color: var(--blue); text-align: left; cursor: pointer; }
@@ -324,9 +326,9 @@
     <button class="tab" id="tabCur" type="button"><span class="tab-ico">💱</span><span class="tab-label" id="tabCurLabel">Currency</span></button>
   </nav>
 
-  <script src="i18n.js?v=16"></script>
-  <script src="cities-i18n.js?v=16"></script>
-  <script src="zones.js?v=16"></script>
-  <script src="app.js?v=16"></script>
+  <script src="i18n.js?v=17"></script>
+  <script src="cities-i18n.js?v=17"></script>
+  <script src="zones.js?v=17"></script>
+  <script src="app.js?v=17"></script>
 </body>
 </html>
