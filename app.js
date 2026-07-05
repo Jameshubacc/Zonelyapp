@@ -877,6 +877,18 @@ function loadCur() {
 let curState = loadCur();
 function saveCur() { try { localStorage.setItem('tzc-cur', JSON.stringify(curState)); } catch (_) {} }
 
+// Group the integer part with thousands separators (5000 -> 5,000).
+function groupInt(intStr) {
+  return intStr.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+// Display string for the raw amount: comma thousands, keep the typed decimal.
+function formatAmount(raw) {
+  if (!raw) return '';
+  const dot = raw.indexOf('.');
+  if (dot === -1) return groupInt(raw);
+  return groupInt(raw.slice(0, dot) || '0') + '.' + raw.slice(dot + 1);
+}
+
 // Format money with the active locale; whole numbers for zero-decimal currencies and big amounts.
 function fmtMoney(amount, code) {
   if (amount == null || isNaN(amount)) return '—';
@@ -929,7 +941,7 @@ function renderCurrency() {
   $('#curBaseName').textContent = curName(base.code);
   $('#curBaseCode').textContent = base.code;
   const amtEl = $('#curAmount');
-  if (amtEl && document.activeElement !== amtEl) amtEl.value = curState.amount;
+  if (amtEl && document.activeElement !== amtEl) amtEl.value = formatAmount(curState.amount);
   $('#curStatus').textContent = curStatusLabel();
   renderCurTargets();
 }
@@ -1085,12 +1097,24 @@ $('#tabCur').addEventListener('click', () => setTab('currency'));
 $('#curBaseBtn').addEventListener('click', () => openCurPicker('base'));
 $('#curRefresh').addEventListener('click', fetchCurRates);
 $('#curAmount').addEventListener('input', (e) => {
-  let v = e.target.value.replace(/[^0-9.]/g, '');
-  const parts = v.split('.');
-  if (parts.length > 2) v = parts[0] + '.' + parts.slice(1).join('');
-  if (e.target.value !== v) e.target.value = v;
-  curState.amount = v;
+  const el = e.target;
+  const oldVal = el.value;
+  const caret = el.selectionStart == null ? oldVal.length : el.selectionStart;
+  const sigBefore = oldVal.slice(0, caret).replace(/[^0-9.]/g, '').length; // digits+dot before caret
+  let raw = oldVal.replace(/[^0-9.]/g, '');
+  const parts = raw.split('.');
+  if (parts.length > 2) raw = parts[0] + '.' + parts.slice(1).join('');
+  curState.amount = raw;
   saveCur();
+  const formatted = formatAmount(raw);
+  el.value = formatted;
+  // Restore the caret after the same number of non-comma characters.
+  let pos = 0, seen = 0;
+  while (pos < formatted.length && seen < sigBefore) {
+    if (formatted[pos] !== ',') seen++;
+    pos++;
+  }
+  try { el.setSelectionRange(pos, pos); } catch (_) {}
   renderCurTargets();
   $('#curStatus').textContent = curStatusLabel();
 });
