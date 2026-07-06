@@ -1,12 +1,12 @@
 // Service worker — offline app shell cache
-const CACHE = 'tz-converter-v18';
+const CACHE = 'tz-converter-v19';
 const ASSETS = [
   './',
   './index.html',
-  './app.js?v=18',
-  './i18n.js?v=18',
-  './cities-i18n.js?v=18',
-  './zones.js?v=18',
+  './app.js?v=19',
+  './i18n.js?v=19',
+  './cities-i18n.js?v=19',
+  './zones.js?v=19',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -34,20 +34,44 @@ self.addEventListener('activate', (e) => {
   );
 });
 
-// Network-first: always serve the freshest version when online, so updates
-// apply immediately; fall back to cache only when offline.
+// Caching strategy, per asset kind:
+// - Navigations/index.html: network-first (no-store) so a new release shows up
+//   on the next launch; cache fallback when offline.
+// - Versioned assets (?v=N): cache-first — immutable per release, the URL
+//   changes when the app updates, so re-downloading them every launch is waste.
+// - Other static assets (icons, brand SVGs, manifest): stale-while-revalidate —
+//   serve from cache instantly, refresh in the background.
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
   if (url.origin !== self.location.origin) return; // let cross-origin pass through
 
+  const putCopy = (resp) => {
+    const copy = resp.clone();
+    caches.open(CACHE).then((c) => c.put(e.request, copy)).catch(() => {});
+    return resp;
+  };
+
+  if (e.request.mode === 'navigate' || url.pathname.endsWith('/index.html')) {
+    e.respondWith(
+      fetch(e.request, { cache: 'no-store' })
+        .then(putCopy)
+        .catch(() => caches.match(e.request).then((cached) => cached || caches.match('./index.html')))
+    );
+    return;
+  }
+
+  if (/(^|&)v=\d+/.test(url.search.slice(1))) {
+    e.respondWith(
+      caches.match(e.request).then((cached) => cached || fetch(e.request).then(putCopy))
+    );
+    return;
+  }
+
   e.respondWith(
-    fetch(e.request, { cache: 'no-store' })
-      .then((resp) => {
-        const copy = resp.clone();
-        caches.open(CACHE).then((c) => c.put(e.request, copy)).catch(() => {});
-        return resp;
-      })
-      .catch(() => caches.match(e.request).then((cached) => cached || caches.match('./index.html')))
+    caches.match(e.request).then((cached) => {
+      const fresh = fetch(e.request).then(putCopy).catch(() => cached);
+      return cached || fresh;
+    })
   );
 });
